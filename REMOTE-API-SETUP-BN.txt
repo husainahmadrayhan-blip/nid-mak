@@ -1,0 +1,17 @@
+Nextsoft Remote PDF — Auto Browser Login
+========================================
+
+ব্যবহার:
+1. প্রথমবার INSTALL-REMOTE-BROWSER.bat চালান। এটি requirements এবং Playwright Chromium ইনস্টল করবে।
+2. RUN-LOCAL-WINDOWS.bat চালান।
+3. Editor-এ “Remote PDF Login / Extract” বাটন চাপুন।
+4. “Login / Session Connect” চাপলে আলাদা ব্রাউজার খুলবে। সেখানে nextsoft27.top-এ নিজের অ্যাকাউন্টে নিজে লগইন করুন। পাসওয়ার্ড editor-এ দিতে হবে না।
+5. লগইন শেষ হলে Remote PDF panel-এ PDF নির্বাচন করে “Upload PDF & Extract JSON” চাপুন।
+6. Extracted JSON প্যানেলের নিচে দেখা যাবে; Copy JSON দিয়ে কপি করতে পারবেন।
+
+নিরাপত্তা ও সীমাবদ্ধতা:
+- কোনো cookie বা token ZIP/source code-এ hardcode করা নেই। Browser session Playwright-এর dedicated local profile-এ থাকে (.nextsoft-browser-profile)।
+- এই folder শেয়ার করবেন না। Shared computer হলে কাজ শেষে remote website থেকে logout করুন এবং .nextsoft-browser-profile folder মুছে দিন।
+- PDF nextsoft27.top-এর remote service-এ পাঠানো হয়।
+- Remote API যদি session/CSRF, account permission বা service policy কারণে request প্রত্যাখ্যান করে, error প্যানেলে দেখাবে; সব account-এ API access নিশ্চিত নয়।
+- এই ZIP থেকে live account-এ login বা upload end-to-end পরীক্ষা করা সম্ভব হয়নি। আপনার account-এ একবার পরীক্ষা করুন।

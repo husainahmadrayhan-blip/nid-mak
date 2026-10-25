@@ -1,0 +1,11 @@
+Playwright ইনস্টল ত্রুটি সমাধান
+================================
+
+1. সব পুরোনো Editor/server console বন্ধ করুন।
+2. এই ZIP নতুন একটি ফোল্ডারে Extract করুন (পুরোনো ফোল্ডারের ওপর নয়)।
+3. INSTALL-REMOTE-BROWSER.bat-এ Right click > Run as administrator প্রয়োজন নেই; সাধারণভাবে চালান।
+4. শেষে SUCCESS বার্তা আসা পর্যন্ত অপেক্ষা করুন।
+5. তারপর RUN-LOCAL-WINDOWS.bat চালান।
+
+এই installer প্রথমে Playwright আলাদাভাবে ইনস্টল করে, একই Python-এ import পরীক্ষা করে, তারপর Chromium ইনস্টল করে।
+যদি ইনস্টল ব্যর্থ হয়, উইন্ডোর শেষের error message কপি করে পাঠান।

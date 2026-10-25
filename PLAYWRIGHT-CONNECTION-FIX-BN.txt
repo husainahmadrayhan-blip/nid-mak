@@ -1,0 +1,7 @@
+Playwright connection fix
+
+সমস্যা: Python ThreadingHTTPServer প্রতিটি API request আলাদা thread-এ চালাচ্ছিল। Playwright sync API অন্য thread থেকে ব্যবহার করলে connection closed / thread-affinity সমস্যা হতে পারে।
+
+সংশোধন: local editor server এখন single-threaded HTTPServer ব্যবহার করে, যাতে Playwright browser start, session check এবং PDF upload একই server thread-এ চলে। Browser/context বন্ধ হয়ে গেলে পুরোনো handle পরিষ্কার করে নতুন browser চালুর চেষ্টা করে।
+
+চালানো: পুরোনো app/terminal বন্ধ করুন, ZIP extract করুন, RUN-LOCAL-WINDOWS.bat চালান, তারপর Login / Session Connect চাপুন। Live nextsoft27 login/upload এই পরিবেশে পরীক্ষা করা হয়নি।

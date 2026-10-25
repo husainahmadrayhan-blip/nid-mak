@@ -1,0 +1,458 @@
+<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline Visual HTML Editor</title><style>@font-face{font-family:'FreeSerif Bengali Embedded';src:url('fonts/FreeSerif-Bengali.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'FreeSerif Bengali Embedded';src:url('fonts/FreeSerif-Bengali-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}
+*{box-sizing:border-box}body{margin:0;background:#101827;color:#e7edf8;font:14px system-ui,Arial}header{padding:12px 18px;background:#192438;display:flex;align-items:center;gap:12px;flex-wrap:wrap}h2{font-size:18px;margin:0 16px 0 0}button,.filebtn{border:1px solid #44516a;background:#293b57;color:white;padding:9px 12px;border-radius:8px;cursor:pointer}button:hover,.filebtn:hover{background:#37547e}input[type=file]{display:none}main{display:grid;grid-template-columns:minmax(0,1fr) 300px;height:calc(100vh - 65px)}#work{overflow:auto;padding:16px;background:#263143;min-width:0;position:relative}#stage-holder{position:relative;width:800px;height:500px;margin:0 auto}#stage{margin:0!important}header{position:relative;z-index:2}#zoomtools{display:flex;gap:5px;align-items:center}#zoomtools button{padding:8px}aside{min-width:0}#stage{position:relative;background:white;color:black;box-shadow:0 10px 30px #1118;transform-origin:top left;overflow:hidden}#stage img.bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#stage .editable{position:absolute;cursor:move;white-space:pre-wrap;min-width:5px;min-height:10px}#stage [data-new-editor-text]{z-index:9999!important;pointer-events:auto!important}#stage .editable.selected,#stage .selected{outline:2px dashed #1686ff!important;outline-offset:2px}aside{background:#192438;padding:16px;overflow:auto}label.field{display:block;margin:12px 0;color:#aebbd0}label.field input{display:block;width:100%;margin-top:5px;background:#101827;border:1px solid #52627b;color:white;padding:9px;border-radius:6px}small{color:#aab8ce}#status{margin-left:auto;color:#9bd9b0}#stage img:not(.bg){max-width:none}#stage-holder{flex-shrink:0}#work{height:100%;min-height:0}main{min-height:0}#stage{isolation:isolate}select{padding:8px;background:#293b57;color:white;border:1px solid #52627b;border-radius:7px}@media(max-width:700px){main{grid-template-columns:1fr;height:auto}#work{min-height:65vh}aside{min-height:250px}}
+
+@media print{
+ body{background:#fff!important;color:#000!important}
+ header,aside,#work> :not(#stage-holder),#zoomtools,#status{display:none!important}
+ body>main{display:block!important;height:auto!important}
+ #work{overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important;height:auto!important}
+ #stage-holder{margin:0!important;width:auto!important;height:auto!important;overflow:visible!important}
+ #stage{transform:none!important;box-shadow:none!important;overflow:visible!important;break-inside:avoid;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+
+/* Full-screen responsive UI refresh */
+:root{color-scheme:dark;--ui-bg:#0b1220;--ui-panel:#111c2f;--ui-border:#2a3b55;--ui-accent:#2563eb}
+html,body{width:100%;height:100%;min-height:100%;overflow:hidden}
+body{background:var(--ui-bg)}
+header{position:sticky;top:0;z-index:100;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#13243c,#172d4b);border-bottom:1px solid #2d4260;box-shadow:0 5px 18px #0003}
+header h2{font-size:16px;flex:1;min-width:150px}
+header button,header .filebtn{min-height:40px;padding:9px 12px;border-radius:10px;font-weight:600}
+main{height:calc(100dvh - 64px);grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:0}
+#work{background:#0b1423;padding:14px;overflow:auto;overscroll-behavior:contain}
+#stage-holder{margin:0 auto 30px;max-width:none}
+#stage{box-shadow:0 12px 34px #0005;border-radius:2px}
+aside{background:var(--ui-panel);border-left:1px solid var(--ui-border);padding:14px;overscroll-behavior:contain}
+#status{font-size:12px;white-space:normal}
+header details{position:relative}
+header details>summary{list-style:none;cursor:pointer;border:1px solid #52627b;background:#293b57;color:white;padding:10px 12px;border-radius:9px;min-height:40px;font-weight:600;white-space:nowrap}
+header details>summary::-webkit-details-marker{display:none}
+#extraTools{position:absolute;right:0;top:calc(100% + 8px);width:min(340px,90vw);max-height:70vh;overflow:auto;z-index:200;background:#111c2f;border:1px solid #344864;border-radius:14px;padding:12px;box-shadow:0 18px 45px #0009;display:flex;flex-wrap:wrap;gap:7px}
+#extraTools button,#extraTools label,#extraTools select,#extraTools input{max-width:100%}
+#extraTools #zoomtools{display:flex;align-items:center;gap:5px}
+@media(max-width:760px){
+ html,body{overflow:auto;height:auto;min-height:100%;}
+ header{position:sticky;top:0;padding:8px;gap:6px}
+ header h2{flex-basis:100%;font-size:15px;margin:0 0 2px}
+ header>button,header>.filebtn,header>details>summary{font-size:12px;min-height:38px;padding:8px 10px}
+ #status{width:100%;margin:0;font-size:11px}
+ main{display:flex;flex-direction:column;height:auto;min-height:calc(100dvh - 70px)}
+ #work{order:2;min-height:55vh;height:auto;padding:10px;overflow:auto}
+ aside{order:1;min-height:0;height:auto;max-height:none;overflow:visible;border-left:0;border-bottom:1px solid var(--ui-border);padding:12px}
+ #stage-holder{margin:0 auto 20px;transform-origin:top left}
+ #extraTools{position:fixed;right:8px;top:100px;max-height:calc(100dvh - 120px);width:min(340px,calc(100vw - 16px))}
+ label.field{margin:9px 0}
+ label.field input, label.field textarea{font-size:16px;min-height:42px}
+}
+@media(min-width:761px){#work{order:1}aside{order:2}}
+
+/* One full-screen tools drawer: every secondary button lives behind the persistent toolbar button. */
+#allEditorTools{display:block;margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid #44516a}
+#allEditorActions>*{flex:0 1 auto}
+#allEditorActions #zoomtools{display:flex;align-items:center;gap:5px}
+#allEditorActions .filebtn{display:inline-flex;align-items:center}
+#allEditorActions input[type=file]{display:none}
+#allEditorActions #savedProjects{min-width:100%;}
+/* Corrected full-screen workspace: centered NID preview, tools hidden until requested. */
+html,body{width:100%;height:100%;min-height:0;overflow:hidden}
+body{display:flex;flex-direction:column;background:#e9edf3;color:#e7edf8}
+header{flex:0 0 auto;position:relative;top:auto;display:flex;align-items:center;gap:8px;padding:9px 12px;max-height:22vh;overflow:visible;z-index:300}
+header h2{flex:0 0 auto}
+main{flex:1 1 auto;min-height:0;height:auto!important;display:block!important;position:relative;overflow:hidden}
+#work{position:absolute;inset:0;width:100%;height:100%;min-height:0;padding:18px;overflow:auto;display:flex;justify-content:center;align-items:flex-start;background:#e7e9ed;}
+#stage-holder{position:relative;flex:0 0 auto;margin:0 auto 28px!important;max-width:none!important;transform:none}
+#stage{margin:0!important;border-radius:0;box-shadow:0 5px 24px #17203330;transform-origin:top left!important}
+/* Tools live in a drawer so the certificate preview gets the full screen by default. */
+main>aside{display:none;position:fixed;z-index:500;right:12px;top:76px;bottom:12px;width:min(390px,calc(100vw - 24px));max-height:none;overflow:auto;border:1px solid #415674;border-radius:14px;box-shadow:0 20px 60px #0008;background:#111c2f;padding:16px}
+body.tools-open main>aside{display:block}
+#toggleEditorTools{background:#2457b8;border-color:#4677d5}
+#extraTools{z-index:600}
+#status{margin-left:auto;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:760px){
+ html,body{height:100%;min-height:0;overflow:hidden}
+ header{max-height:25vh;padding:7px;gap:5px;overflow:visible;flex-wrap:wrap}
+ header h2{flex-basis:100%;font-size:14px;margin:0}
+ header>button,header>.filebtn,header>details>summary{font-size:11px;min-height:34px;padding:7px 9px}
+ #status{width:auto;flex:1 1 100%;margin:0;font-size:10px;max-width:100%}
+ main{height:auto!important;min-height:0;flex:1 1 auto;overflow:hidden}
+ #work{padding:10px;overflow:auto;align-items:flex-start;justify-content:center}
+ #stage-holder{margin:0 auto 20px!important}
+ main>aside{top:8px;right:8px;bottom:8px;width:calc(100vw - 16px);max-height:none}
+ #extraTools{position:fixed;right:8px;top:64px;max-height:calc(100dvh - 80px);width:min(340px,calc(100vw - 16px))}
+}
+@media print{html,body{display:block!important;overflow:visible!important;height:auto!important}main{position:static!important;display:block!important;overflow:visible!important}#work{position:static!important;display:block!important;overflow:visible!important;padding:0!important;background:#fff!important}#stage-holder{margin:0!important}main>aside{display:none!important}}
+
+/* FINAL FIX: real full-viewport preview workspace and always-accessible controls */
+html,body{width:100%;height:100%;min-height:0;margin:0;overflow:hidden}
+body{display:flex;flex-direction:column;background:#e9edf3;color:#e7edf8}
+body>header{position:relative!important;inset:auto!important;flex:0 0 auto!important;width:100%;max-height:none!important;min-height:58px;padding:8px 12px!important;display:flex!important;align-items:center;justify-content:flex-start;gap:8px;overflow:visible!important;z-index:1000;background:#13243c;border-bottom:1px solid #2d4260}
+body>header h2{flex:1 1 160px;min-width:140px;margin:0;font-size:16px}
+body>header #printPdf,body>header #toggleEditorTools{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap;min-height:40px}
+body>main{position:relative!important;inset:auto!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;width:100%!important;display:block!important;overflow:hidden!important}
+body>main>#work{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:18px!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;overflow:auto!important;background:#e7edf5!important}
+#stage-holder{position:relative!important;flex:0 0 auto!important;margin:0 auto 24px!important;max-width:none!important;transform:none!important}
+#stage{position:relative!important;margin:0!important;transform-origin:top left!important;border-radius:0!important;box-shadow:0 8px 28px #17203330!important}
+body>main>aside{display:none!important;position:fixed!important;inset:72px 12px 12px auto!important;z-index:1200!important;width:min(420px,calc(100vw - 24px))!important;max-height:none!important;overflow:auto!important;border:1px solid #415674!important;border-radius:14px!important;box-shadow:0 20px 60px #0009!important;background:#111c2f!important;padding:16px!important}
+body.tools-open>main>aside{display:block!important}
+#allEditorTools{display:block!important;margin:0 0 14px!important;padding:0 0 12px!important;border-bottom:1px solid #44516a!important}
+#allEditorActions{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important}
+#allEditorActions>*{max-width:100%!important}
+#toggleEditorTools{background:#2457b8!important;border-color:#4677d5!important}
+@media(max-width:760px){
+ html,body{height:100%!important;min-height:0!important;overflow:hidden!important}
+ body>header{min-height:0!important;max-height:30vh!important;flex-wrap:wrap!important;padding:7px!important;gap:6px!important}
+ body>header h2{flex:1 0 100%!important;font-size:14px!important}
+ body>header #printPdf,body>header #toggleEditorTools{font-size:12px!important;min-height:38px!important;padding:8px 10px!important}
+ body>header #status{flex:1 0 100%!important;width:auto!important;max-width:100%!important;margin:0!important;font-size:11px!important}
+ body>main>#work{padding:10px!important;align-items:flex-start!important;justify-content:center!important;overflow:auto!important}
+ body>main>aside{inset:8px!important;width:auto!important;max-height:none!important;border-radius:12px!important}
+}
+@media print{
+ html,body{display:block!important;width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+ body>header,body>main>aside{display:none!important}
+ body>main{position:static!important;display:block!important;width:auto!important;height:auto!important;overflow:visible!important}
+ body>main>#work{position:static!important;display:block!important;width:auto!important;height:auto!important;min-height:0!important;overflow:visible!important;padding:0!important;background:#fff!important}
+ #stage-holder{margin:0!important;width:auto!important;height:auto!important;overflow:visible!important}
+ #stage{transform:none!important;box-shadow:none!important;overflow:visible!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+}
+
+/* NID form-first full-screen workspace */
+body>main>#work{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:16px!important}
+#pdf-addon{order:0;flex:0 0 auto;width:100%;max-width:100%;margin:0!important}
+#stage-holder{order:1;align-self:center!important;margin:0 auto 28px!important}
+#stage{max-width:none!important}
+@media(min-width:761px){#pdf-addon{padding:20px!important}#stage-holder{margin-top:8px!important}}
+@media print{#pdf-addon{display:none!important}body>main>#work{display:block!important}#stage-holder{display:block!important;margin:0!important}}
+
+/* PDF/JSON extracted-field form UI: screenshot-inspired light-blue, responsive two-column layout.
+   Scoped to tools/forms only, so the existing editor canvas and Print toolbar remain unchanged. */
+#allEditorTools form,
+#allEditorTools .pdf-json-panel,
+#allEditorTools .field-mapping,
+#allEditorTools .extracted-fields,
+body.pdf-data-loaded #pdfDataForm,
+body.pdf-data-loaded .pdf-data-form,
+.pdf-extract-form,
+.pdf-data-form,
+.field-mapping-form{
+  color:#18324b;
+}
+#allEditorTools form:has(input[type="file"]),
+.pdf-extract-form,
+.pdf-data-form,
+.field-mapping-form{
+  background:#eaf4fc;
+  border:1px solid #d5e5f3;
+  border-radius:12px;
+  padding:18px;
+}
+#allEditorTools form label,
+.pdf-extract-form label,
+.pdf-data-form label,
+.field-mapping-form label{
+  display:block;
+  color:#657f98;
+  font-size:13px;
+  margin:0 0 5px;
+}
+#allEditorTools form input:not([type="file"]):not([type="checkbox"]),
+#allEditorTools form select,
+#allEditorTools form textarea,
+.pdf-extract-form input:not([type="file"]),
+.pdf-extract-form select,
+.pdf-extract-form textarea,
+.pdf-data-form input:not([type="file"]),
+.pdf-data-form select,
+.pdf-data-form textarea,
+.field-mapping-form input:not([type="file"]),
+.field-mapping-form select,
+.field-mapping-form textarea{
+  width:100%;
+  min-width:0;
+  min-height:38px;
+  border:1px solid #d5e1ed;
+  border-radius:7px;
+  background:#f8fbff;
+  color:#18324b;
+  padding:9px 12px;
+  font:14px system-ui,Arial,sans-serif;
+  box-shadow:none;
+}
+#allEditorTools form textarea,
+.pdf-extract-form textarea,
+.pdf-data-form textarea,
+.field-mapping-form textarea{min-height:72px;resize:vertical}
+#allEditorTools form .form-grid,
+.pdf-extract-form .form-grid,
+.pdf-data-form .form-grid,
+.field-mapping-form .form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px 18px;
+}
+#allEditorTools form .form-row,
+.pdf-extract-form .form-row,
+.pdf-data-form .form-row,
+.field-mapping-form .form-row{min-width:0}
+#allEditorTools form .full-width,
+.pdf-extract-form .full-width,
+.pdf-data-form .full-width,
+.field-mapping-form .full-width{grid-column:1/-1}
+#allEditorTools form button[type="submit"],
+.pdf-extract-form button[type="submit"],
+.pdf-data-form button[type="submit"],
+.field-mapping-form button[type="submit"]{
+  background:#2454c6;color:white;border:0;border-radius:8px;
+  min-height:40px;padding:10px 18px;font-weight:600;
+}
+@media(max-width:640px){
+  #allEditorTools form .form-grid,
+  .pdf-extract-form .form-grid,
+  .pdf-data-form .form-grid,
+  .field-mapping-form .form-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+  #allEditorTools form:has(input[type="file"]),
+  .pdf-extract-form,.pdf-data-form,.field-mapping-form{padding:12px}
+}
+/* Keep the Print/PDF button visible and touch-friendly on narrow screens. */
+body>header #printPdf{min-height:42px;padding:9px 14px!important;flex:0 0 auto!important}
+@media(max-width:640px){
+  body>header{flex-wrap:wrap!important;gap:6px!important}
+  body>header #printPdf{order:1!important}
+  body>header #toggleEditorTools{order:2!important}
+  body>header h2{flex:1 0 100%!important;min-width:0!important}
+}
+</style>
+<style id="print-final-override">
+/* Final print override: loaded after the project CSS */
+@media print {
+  @page { margin: 0; }
+  html, body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body, body * { box-shadow: none !important; }
+  header, aside, #zoomtools, #status, #work > :not(#stage-holder) { display: none !important; }
+  body > main, main, #work { display: block !important; background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  #stage-holder { display: block !important; position: static !important; margin: 0 !important; padding: 0 !important; width: 800px !important; height: 500px !important; min-height: 0 !important; overflow: hidden !important; background: #fff !important; box-shadow: none !important; transform: none !important; break-before: avoid !important; break-after: avoid !important; page-break-before: avoid !important; page-break-after: avoid !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+  #stage { display: block !important; position: relative !important; margin: 0 !important; background: #fff !important; box-shadow: none !important; transform: none !important; overflow: hidden !important; break-before: avoid !important; break-after: avoid !important; page-break-before: avoid !important; page-break-after: avoid !important; break-inside: avoid !important; page-break-inside: avoid !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+}
+</style>
+<style>
+/* Light-blue responsive first-page UI refresh */
+:root{color-scheme:light} body{background:#eaf4fc!important;color:#334155!important;font-family:Arial,'Noto Sans Bengali',sans-serif!important} body>header{background:#f8fbff!important;color:#334155!important;border-bottom:1px solid #d8e5f2!important;box-shadow:0 2px 12px #2040600a;padding:14px 18px!important} body>header h2{color:#34516d!important} button,.filebtn{background:#2455c7!important;color:#fff!important;border:1px solid #2455c7!important;border-radius:7px!important;box-shadow:none!important} button:hover,.filebtn:hover{background:#1746ad!important} #status{color:#23734d!important} main{background:#eaf4fc!important;grid-template-columns:minmax(0,1fr) 320px!important} #work{background:#edf6fd!important;padding:22px!important} #stage-holder{filter:drop-shadow(0 8px 20px #284c6b18)} #stage{box-shadow:0 3px 18px #284c6b18!important;border:1px solid #dbe7f2!important} aside{background:#f7fbff!important;color:#344b63!important;border-left:1px solid #d8e5f2!important} aside small,label.field{color:#66809a!important} label.field input,label.field textarea,aside select{background:#fff!important;color:#263b53!important;border:1px solid #d5e2ee!important;border-radius:6px!important} label.field input:focus,label.field textarea:focus{outline:2px solid #a8c9ff;border-color:#6d9cf0!important} aside hr{border-top-color:#d8e5f2!important} #zoomtools button{background:#fff!important;color:#2455c7!important;border-color:#cbdced!important} header #saveFullPermanentZip{background:#2455c7!important} @media(max-width:800px){body>header{gap:7px!important;padding:10px!important}body>header h2{flex-basis:100%!important}main{grid-template-columns:1fr!important;height:auto!important}#work{min-height:55vh!important;padding:12px!important;overflow:auto!important}#stage-holder{margin-left:0!important;margin-right:0!important}aside{border-left:0!important;border-top:1px solid #d8e5f2!important;min-height:300px!important;max-height:none!important}body>header button,body>header .filebtn{font-size:12px!important}}
+</style></head><body><header><h2>Visual HTML Editor</h2><label class="filebtn">প্রজেক্ট ফাইল <input id="files" type="file" accept=".html,.htm,.css,.jpg,.jpeg,.png,.zip" multiple></label><button id="newtext">＋ New Text / নতুন বাংলা লেখা</button><button id="duplicateText" type="button">▣ Duplicate Selected / ডুপ্লিকেট</button><button id="undo">↶ Undo</button><button id="redo">↷ Redo</button><button id="save">⬇ Export ZIP</button><button id="saveFullPermanentZip" type="button" title="বর্তমান Text Size ও Position-সহ সম্পূর্ণ প্রজেক্ট ZIP সেভ করুন">📦 Full ZIP (Saved Position)</button><button id="printPdf" type="button">🖨 Print / PDF</button><button id="toggleEditorTools" type="button" aria-expanded="false">☰ PDF / JSON / Editor Tools</button><button id="downloadImage" type="button">🖼 Download Image</button><input id="projectName" type="text" placeholder="প্রজেক্টের নাম" aria-label="প্রজেক্টের নাম" style="width:145px;padding:9px;border-radius:8px;border:1px solid #52627b;background:#101827;color:white"><button id="saveProject" type="button">💾 Save Project</button><select id="savedProjects" aria-label="Saved projects" style="max-width:150px"><option value="">Saved Projects</option></select><button id="openProject" type="button">📂 Open Saved</button><button id="deleteProject" type="button">🗑 Delete Saved</button><div id="zoomtools"><button id="fit" type="button">⛶ Fit Screen</button><button id="zoomout" type="button">−</button><span id="zoomlabel">100%</span><button id="zoomin" type="button">+</button></div><span id="status">Ready</span></header><main><section id="work"><div id="stage-holder"><div id="stage"></div></div></section><aside><b>Selected Element</b><p><small>নতুন লেখা যোগ করতে উপরের + New Text চাপুন। তারপর লেখা পরিবর্তন, Bold ও Drag করুন।</small></p><label class="field">Selected Text<textarea id="textedit" rows="3" placeholder="বাংলা বা English লিখুন" style="display:block;width:100%;margin-top:5px;background:#101827;border:1px solid #52627b;color:white;padding:9px;border-radius:6px;resize:vertical"></textarea></label><p id="chosen">কোনো এলিমেন্ট সিলেক্ট করুন</p><label class="field">X (px)<input id="x" type="number"></label><label class="field">Y (px)<input id="y" type="number"></label><label class="field">Font size (px)<input id="font" type="number"></label><label class="field">Width (px, 0 = auto)<input id="width" type="number"></label><label class="field">Height (px, 0 = auto)<input id="height" type="number"></label><hr style="border:0;border-top:1px solid #44516a;margin:20px 0 12px"><b>✍ Text Style</b><label class="field">Font Family<select id="family" style="display:block;width:100%;margin-top:5px"><option value="">Original / Inherit</option><option value="Arial, sans-serif">Arial</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Noto Sans Bengali', sans-serif">Noto Sans Bengali</option><option value="'Noto Serif Bengali', serif">Noto Serif Bengali</option><option value="'FreeSerif Bengali Embedded', serif">FreeSerif Bengali (Offline Embedded)</option><option value="'Nikosh', sans-serif">Nikosh</option><option value="'SolaimanLipi', sans-serif">SolaimanLipi</option><option value="'Kalpurush', sans-serif">Kalpurush</option><option value="'Siyam Rupali', sans-serif">Siyam Rupali</option><option value="'SutonnyMJ', sans-serif">SutonnyMJ (legacy)</option><option value="monospace">Monospace</option></select><small style="display:block;color:#aebbd0;margin-top:5px;line-height:1.4">FreeSerif Bengali (Offline Embedded) এই ZIP-এর সঙ্গে যুক্ত, ইন্টারনেট বা Windows font install লাগবে না। PDF-এর ফন্টের সঙ্গে মিলিয়ে Family, Size ও Weight বদলে দেখুন।</small></label><label class="field">Font Weight<select id="weight" style="display:block;width:100%;margin-top:5px"><option value="400">Normal</option><option value="700">Bold</option><option value="600">Semi Bold</option><option value="300">Light</option><option value="100">Thin</option><option value="200">Extra Light</option><option value="500">Medium</option><option value="800">Extra Bold</option><option value="900">Black</option></select></label><label class="field">Bold Thickness (100–900)<input id="thickness" type="range" min="100" max="900" step="100" value="400"><span id="thicknessvalue">400</span></label><label class="field">Text Color<input id="color" type="color" value="#000000" style="height:45px;padding:4px"></label><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" data-color="#e11d48">🔴 Red</button><button type="button" data-color="#000000">Black</button><button type="button" data-color="#2563eb">Blue</button><button type="button" data-color="#ffffff">White</button></div><label class="field">Text Stroke / অক্ষরের বাড়তি মোটা রেখা (px)<input id="stroke" type="range" min="0" max="2" step="0.05" value="0"><span id="strokevalue">0px</span></label><button type="button" id="resetstyle">↺ Reset Text Style (Normal)</button><label class="field">Text Darkness / রঙের গাঢ়ত্ব <input id="darkness" type="range" min="0" max="100" value="100"><span id="darknessvalue">100%</span></label><label class="field">Letter Spacing (px)<input id="spacing" type="number" step="0.1" value="0"></label><label class="field">Zoom (%)<input id="zoom" type="number" min="1" max="300" value="100"></label><small>মাউস দিয়ে টানুন। Arrow key = 1px, Shift + Arrow = 10px। HTML/CSS/JPG ফাইল একসঙ্গে অথবা ZIP আপলোড করুন।</small></aside></main><script>
+// Offline bundled JSZip is loaded below if CDN unavailable.
+</script><script src="jszip.min.js"></script><script>
+const $=id=>document.getElementById(id),stage=$('stage'),fileMap=new Map();let doc=null,selected=null,history=[],future=[],currentHtml='index.html',cssPaths=[],backgroundName=null,drag=null;let autoFit=true;let fitRequest=0;
+function status(s){$('status').textContent=s}function snap(){if(!doc)return;history.push(new XMLSerializer().serializeToString(doc));if(history.length>80)history.shift();future=[]}function restore(s){doc=new DOMParser().parseFromString(s,'text/html');render()}
+$('undo').onclick=()=>{if(!history.length||!doc)return;future.push(new XMLSerializer().serializeToString(doc));restore(history.pop())};$('redo').onclick=()=>{if(!future.length||!doc)return;history.push(new XMLSerializer().serializeToString(doc));restore(future.pop())};
+function findPath(name){const names=[...fileMap.keys()];return names.find(x=>x===name)||names.find(x=>x.endsWith('/'+name))||names.find(x=>x.split('/').pop()===name.split('/').pop())}
+function pathResolve(base,rel){let p=rel.split('?')[0].split('#')[0].replace(/^\.\//,'');let parts=base.split('/');parts.pop();for(let s of p.split('/')){if(s==='..')parts.pop();else if(s&&s!=='.')parts.push(s)}return parts.join('/')}
+function asset(base,url){if(!url||/^(data:|blob:|https?:|#)/i.test(url))return url;let name=findPath(pathResolve(base,url))||findPath(url);let v=name&&fileMap.get(name);return v?.url||url}
+function resolveCssUrls(css,base){return css.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi,(match,q,raw)=>{const u=raw.trim();if(!u||/^(data:|blob:|https?:|#)/i.test(u))return match;const resolved=asset(base,u);if(resolved===u&&!findPath(pathResolve(base,u))&&!findPath(u)){missingAssets.add(u);return match;}return 'url("'+resolved+'")';});}
+let missingAssets=new Set();
+function collectStyle(){let css='';cssPaths=[];missingAssets.clear();for(let link of doc.querySelectorAll('link[rel="stylesheet"]')){let href=link.getAttribute('href');let p=findPath(pathResolve(currentHtml,href||''));if(p){cssPaths.push(p);css+='\n'+resolveCssUrls(fileMap.get(p).text,p)+'\n'}else if(href)missingAssets.add(href)}for(let st of doc.querySelectorAll('style'))css+='\n'+resolveCssUrls(st.textContent,currentHtml)+'\n';return css}
+function render(){selected=null;drag=null;stage.replaceChildren();if(!doc)return;let style=document.createElement('style');style.textContent=collectStyle();stage.append(style);
+let body=doc.body.cloneNode(true);body.querySelectorAll('script,iframe,object,embed').forEach(e=>e.remove());let sourceNodes=[...doc.body.querySelectorAll('*')],targetNodes=[...body.querySelectorAll('*')];body.setAttribute('data-editor-root','');stage.append(body);stage.style.width='auto';stage.style.height='auto';let sw=parseFloat(getComputedStyle(body).width),sh=parseFloat(getComputedStyle(body).height);const originalWidth=sw,originalHeight=sh;if(!Number.isFinite(sw)||sw<200||sw>10000)sw=800;if(!Number.isFinite(sh)||sh<100||sh>10000)sh=500;const bg=body.querySelector('img');if(bg){const iw=parseFloat(bg.getAttribute('width'))||0,ih=parseFloat(bg.getAttribute('height'))||0;if(iw>sw&&iw<=10000)sw=iw;if(ih>sh&&ih<=10000)sh=ih;}const sized=[...body.querySelectorAll('*')].filter(e=>e!==bg);for(const e of sized){const cs=getComputedStyle(e);const left=parseFloat(cs.left),top=parseFloat(cs.top),w=parseFloat(cs.width),h=parseFloat(cs.height);if(cs.position==='absolute'&&Number.isFinite(left)&&Number.isFinite(w))sw=Math.max(sw,left+w);if(cs.position==='absolute'&&Number.isFinite(top)&&Number.isFinite(h))sh=Math.max(sh,top+h);}sw=Math.min(10000,Math.ceil(sw));sh=Math.min(10000,Math.ceil(sh));stage.style.width=sw+'px';stage.style.height=sh+'px';body.style.width='100%';body.style.height='100%';body.style.margin='0';body.style.position='relative';body.style.overflow='hidden';body.querySelectorAll('[data-new-editor-text]').forEach(e=>{e.style.zIndex='9999';e.style.pointerEvents='auto'});
+let all=[body,...targetNodes];for(let el of all){for(let attr of ['src','poster'])if(el.hasAttribute(attr))el.setAttribute(attr,asset(currentHtml,el.getAttribute(attr)));if(el.hasAttribute('style'))el.style.backgroundImage=resolveCssUrls(el.style.backgroundImage,currentHtml)}
+let nodes=[...body.querySelectorAll('*')];nodes.forEach((el,i)=>{if(!['SCRIPT','STYLE','LINK','META','BR'].includes(el.tagName)&&!el.closest('[data-editor-ignore]')){el.dataset.editorIndex=i;el.addEventListener('pointerdown',e=>startDrag(e,el));}});body.addEventListener('pointerdown',e=>{if(e.target===body)select(body)});status(missingAssets.size?'Missing background/assets: '+[...missingAssets].slice(0,3).join(', '):'Loaded — '+nodes.length+' elements');requestAnimationFrame(()=>{if(autoFit)fitScreen();else applyZoom();});body.querySelectorAll('img').forEach(img=>{if(!img.complete)img.addEventListener('load',()=>{if(autoFit)fitScreen()},{once:true})});}
+function sourceFor(el){if(!el)return null;if(el===stage.firstElementChild)return doc.body;if(el===stage.querySelector('[data-editor-root]'))return doc.body;let idx=el.dataset.editorIndex;if(idx===undefined)return null;return doc.body.querySelectorAll('*')[Number(idx)]||null}
+function select(el){stage.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));selected=el;el.classList.add('selected');$('chosen').textContent=el.tagName+' '+(el.textContent||'').trim().slice(0,50);$('textedit').value=el.children.length===0?(el.textContent||''):'';$('textedit').disabled=el.children.length>0;const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect(),z=Number($('zoom').value)/100;$('x').value=Math.round((r.left-s.left)/z);$('y').value=Math.round((r.top-s.top)/z);$('font').value=parseFloat(getComputedStyle(el).fontSize)||16;const cs=getComputedStyle(el);$('weight').value=[...$('weight').options].some(o=>o.value===cs.fontWeight)?cs.fontWeight:'400';$('thickness').value=Number(cs.fontWeight)||400;$('thicknessvalue').textContent=$('thickness').value;$('stroke').value=Math.min(2,parseFloat(cs.webkitTextStrokeWidth)||0);$('strokevalue').textContent=$('stroke').value+'px';$('darkness').value=Math.round((Number.isFinite(parseFloat(cs.opacity))?parseFloat(cs.opacity):1)*100);$('darknessvalue').textContent=$('darkness').value+'%';$('color').value=toHex(cs.color);$('spacing').value=cs.letterSpacing==='normal'?0:(parseFloat(cs.letterSpacing)||0);$('family').value=[...$('family').options].some(o=>o.value===el.style.fontFamily)?el.style.fontFamily:'';$('width').value=Math.round(r.width/z);$('height').value=Math.round(r.height/z)}
+$('newtext').onclick=()=>{if(!doc){doc=new DOMParser().parseFromString('<!doctype html><html><head><meta charset="utf-8"></head><body style="width:800px;height:500px;background:white"></body></html>','text/html');currentHtml='index.html';fileMap.clear()}snap();const el=doc.createElement('div');el.setAttribute('data-new-editor-text','true');el.textContent='নতুন বাংলা লেখা';el.style.cssText='position:absolute;left:60px;top:60px;font-family:Arial, sans-serif;font-size:20px;font-weight:400;-webkit-text-stroke:0px transparent;text-shadow:none;opacity:1;color:#000000;white-space:pre-wrap;cursor:move';doc.body.append(el);render();const newIndex=[...doc.body.querySelectorAll('*')].indexOf(el);const newEl=stage.querySelector('[data-editor-index="'+newIndex+'"]');if(newEl)select(newEl);status('নতুন লেখা যোগ হয়েছে — ডান পাশের Selected Text-এ লিখুন')};$('textedit').addEventListener('input',()=>{if(!selected||selected.children.length)return;const src=sourceFor(selected);if(!src)return;snap();src.textContent=$('textedit').value;selected.textContent=$('textedit').value;});
+$('duplicateText').onclick=()=>{if(!doc||!selected){status('আগে যে লেখা/HTML ডুপ্লিকেট করবেন সেটি নির্বাচন করুন');return;}const src=sourceFor(selected);if(!src||src===doc.body){status('এই HTML এলিমেন্ট ডুপ্লিকেট করা যাবে না');return;}snap();const cs=getComputedStyle(selected);const r=selected.getBoundingClientRect(),sr=stage.getBoundingClientRect(),z=Math.max(.01,Number($('zoom').value)/100);const x=Math.round((r.left-sr.left)/z)+20,y=Math.round((r.top-sr.top)/z)+20;const clone=doc.createElement('div');clone.setAttribute('data-new-editor-text','true');clone.textContent=(src.textContent||'নতুন বাংলা লেখা').trim();const props=['fontFamily','fontSize','fontWeight','fontStyle','lineHeight','letterSpacing','color','textAlign','textDecoration','webkitTextStroke','textShadow','opacity','backgroundColor','border','borderRadius','padding','whiteSpace','wordBreak','writingMode'];clone.style.position='absolute';clone.style.left=x+'px';clone.style.top=y+'px';clone.style.width=Math.max(30,Math.round(r.width/z))+'px';clone.style.minHeight=Math.max(20,Math.round(r.height/z))+'px';clone.style.boxSizing='border-box';clone.style.cursor='move';clone.style.zIndex='10000';clone.style.userSelect='none';for(const p of props){const v=cs[p];if(v&&v!=='normal'&&v!=='none')clone.style[p]=v;}clone.style.whiteSpace='pre-wrap';clone.style.overflowWrap='anywhere';doc.body.append(clone);render();const ni=[...doc.body.querySelectorAll('*')].indexOf(clone);const rendered=stage.querySelector('[data-editor-index="'+ni+'"]');if(rendered)select(rendered);status('ডুপ্লিকেট তৈরি হয়েছে। লেখা সম্পাদনা করুন এবং টেনে যেকোনো জায়গায় নিন।');};function toHex(v){let m=(v||'').match(/[\d.]+/g);if(!m||m.length<3)return '#000000';return '#'+m.slice(0,3).map(n=>Math.max(0,Math.min(255,Math.round(+n))).toString(16).padStart(2,'0')).join('')}
+function styleSelected(prop,value){if(!selected)return;let source=sourceFor(selected);if(!source)return;snap();selected.style[prop]=value;source.style[prop]=value;status('Style updated — Export ZIP to save')}
+function update(x,y,opts={}){if(!selected)return;let source=sourceFor(selected);if(!source)return;for(let el of [selected,source]){el.style.position='absolute';el.style.left=x+'px';el.style.top=y+'px';if(opts.font)el.style.fontSize=opts.font+'px';if(opts.width!==undefined)el.style.width=opts.width>0?opts.width+'px':'auto';if(opts.height!==undefined)el.style.height=opts.height>0?opts.height+'px':'auto'}$('x').value=x;$('y').value=y}
+function startDrag(e,el){if(e.button!==0)return;e.preventDefault();e.stopPropagation();select(el);snap();let x=Number($('x').value),y=Number($('y').value);drag={el,x,y,px:e.clientX,py:e.clientY};try{el.setPointerCapture(e.pointerId)}catch(_){}}stage.addEventListener('pointermove',e=>{if(!drag)return;let z=Number($('zoom').value)/100;update(Math.round(drag.x+(e.clientX-drag.px)/z),Math.round(drag.y+(e.clientY-drag.py)/z))});stage.addEventListener('pointerup',()=>drag=null);stage.addEventListener('pointercancel',()=>drag=null);
+for(let id of ['x','y','font','width','height'])$(id).addEventListener('change',()=>{if(!selected)return;snap();update(Number($('x').value),Number($('y').value),{font:Number($('font').value),width:Number($('width').value),height:Number($('height').value)})});$('family').addEventListener('change',()=>{if(!selected)return;styleSelected('fontFamily',$('family').value)});$('weight').addEventListener('change',()=>{if(!selected)return;styleSelected('fontWeight',$('weight').value);$('thickness').value=Number($('weight').value)||400;$('thicknessvalue').textContent=$('thickness').value});$('color').addEventListener('input',()=>{if(!selected)return;styleSelected('color',$('color').value)});$('spacing').addEventListener('change',()=>{if(!selected)return;styleSelected('letterSpacing',Number($('spacing').value)+'px')});$('thickness').addEventListener('input',()=>{if(!selected)return;const v=$('thickness').value;$('thicknessvalue').textContent=v;styleSelected('fontWeight',v);$('weight').value=v});$('stroke').addEventListener('input',()=>{if(!selected)return;const v=$('stroke').value;$('strokevalue').textContent=v+'px';styleSelected('webkitTextStroke',v==='0'?'0px transparent':v+'px currentColor')});$('resetstyle').onclick=()=>{if(!selected)return;const src=sourceFor(selected);if(!src)return;snap();for(const el of [selected,src]){el.style.fontWeight='400';el.style.webkitTextStroke='0px transparent';el.style.textShadow='none';el.style.opacity='1';el.style.color='#000000'}$('weight').value='400';$('thickness').value='400';$('thicknessvalue').textContent='400';$('stroke').value='0';$('strokevalue').textContent='0px';$('darkness').value='100';$('darknessvalue').textContent='100%';$('color').value='#000000';status('Text style reset — Export ZIP to save')};$('darkness').addEventListener('input',()=>{if(!selected)return;const v=$('darkness').value;$('darknessvalue').textContent=v+'%';styleSelected('opacity',String(Number(v)/100))});for(let id of ['family','weight','color','spacing'])$(id).addEventListener('change',()=>{let prop={family:'fontFamily',weight:'fontWeight',color:'color',spacing:'letterSpacing'}[id];styleSelected(prop,id==='spacing'?Number($(id).value)+'px':$(id).value);if(id==='weight'){$('thickness').value=$(id).value;$('thicknessvalue').textContent=$(id).value}});document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{$('color').value=b.dataset.color;styleSelected('color',b.dataset.color)}));function applyZoom(){let z=Math.max(1,Math.min(300,Number($('zoom').value)||100))/100;$('zoom').value=+(z*100).toFixed(2);stage.style.transform='scale('+z+')';const holder=$('stage-holder');holder.style.width=Math.ceil(stage.offsetWidth*z)+'px';holder.style.height=Math.ceil(stage.offsetHeight*z)+'px';$('zoomlabel').textContent=+(z*100).toFixed(1)+'%'}
+function fitScreen(){if(!doc)return;const work=$('work'),w=stage.offsetWidth||800,h=stage.offsetHeight||500;const availableW=Math.max(1,work.clientWidth-36),availableH=Math.max(1,work.clientHeight-36);const z=Math.min(availableW/w,availableH/h,1);$('zoom').value=+(Math.max(.01,z)*100).toFixed(2);applyZoom();work.scrollTop=0;work.scrollLeft=0}
+$('zoom').onchange=()=>{autoFit=false;applyZoom()};$('fit').onclick=()=>{autoFit=true;fitScreen()};$('zoomin').onclick=()=>{autoFit=false;$('zoom').value=Number($('zoom').value)+10;applyZoom()};$('zoomout').onclick=()=>{autoFit=false;$('zoom').value=Number($('zoom').value)-10;applyZoom()};window.addEventListener('resize',()=>{if(autoFit)fitScreen()});$('work').addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();autoFit=false;$('zoom').value=Number($('zoom').value)+(e.deltaY<0?10:-10);applyZoom()},{passive:false});
+document.addEventListener('keydown',e=>{if(!selected||!e.key.startsWith('Arrow')||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;e.preventDefault();snap();let n=e.shiftKey?10:1,x=Number($('x').value),y=Number($('y').value);if(e.key==='ArrowLeft')x-=n;if(e.key==='ArrowRight')x+=n;if(e.key==='ArrowUp')y-=n;if(e.key==='ArrowDown')y+=n;update(x,y)});
+
+function ensureBirthPlace(){
+ if(!doc || doc.querySelector('.field-birth-place,[data-field="birthPlace"]'))return;
+ const card=doc.querySelector('.nid-card');
+ if(!card)return;
+ const el=doc.createElement('div');
+ el.className='text-block field-birth-place';
+ el.setAttribute('data-field','birthPlace');
+ el.textContent='';
+ el.style.cssText='position:absolute;left:719px;top:160px;font-size:18px;font-family:SolaimanLipi, Noto Sans Bengali, Arial, sans-serif;color:#000;white-space:nowrap;z-index:2;min-width:90px;min-height:24px';
+ card.appendChild(el);
+}
+
+async function load(files){fileMap.clear();doc=null;for(let file of files){if(/\.zip$/i.test(file.name)){let zip=await JSZip.loadAsync(file);for(let [name,obj] of Object.entries(zip.files)){if(!obj.dir){let bytes=await obj.async('uint8array');put(name,bytes)}}}else put(file.name,new Uint8Array(await file.arrayBuffer()))}let htmls=[...fileMap.keys()].filter(n=>/\.html?$/i.test(n));currentHtml=htmls.find(n=>!/(^|\/)index\.html?$/i.test(n) && !/Visual HTML Editor|Offline Visual HTML Editor/i.test(fileMap.get(n).text.slice(0,2000))) || htmls.find(n=>!(/Visual HTML Editor|Offline Visual HTML Editor/i.test(fileMap.get(n).text.slice(0,2000)))) || htmls[0];if(!currentHtml){status('HTML পাওয়া যায়নি — HTML/CSS/ছবি-সহ প্রজেক্ট ZIP দিন');return}doc=new DOMParser().parseFromString(fileMap.get(currentHtml).text,'text/html');ensureBirthPlace();history=[];future=[];render();status('Project loaded: '+currentHtml+' ('+fileMap.size+' files)'+(missingAssets.size?' | MISSING: '+[...missingAssets].join(', '):''))}
+function put(name,bytes){let blob=new Blob([bytes]);fileMap.set(name,{bytes,text:new TextDecoder().decode(bytes),url:URL.createObjectURL(blob)})}
+
+
+async function refreshSavedProjects(selectName=''){try{const r=await fetch('/api/projects');if(!r.ok)throw new Error('Server project list unavailable');const data=await r.json();const sel=$('savedProjects');sel.replaceChildren(new Option('Saved Projects',''));for(const p of (data.projects||[]))sel.add(new Option(p.name,p.name));if(selectName)sel.value=selectName}catch(e){status('Saved project list unavailable: '+e.message)}}
+async function makeProjectZip(){if(!doc)throw new Error('আগে HTML/ZIP প্রজেক্ট লোড করুন');if(typeof window.flushPermanentLayout==='function')window.flushPermanentLayout();const zip=new JSZip();for(const [name,f] of fileMap)zip.file(name,f.bytes);zip.file(currentHtml,'<!DOCTYPE html>\n'+doc.documentElement.outerHTML);return zip.generateAsync({type:'blob'})}
+$('saveProject').onclick=async()=>{try{if(!doc)throw new Error('আগে HTML/ZIP প্রজেক্ট লোড করুন');const name=($('projectName').value||currentHtml.replace(/\.(html?|htm)$/i,'')||'Untitled Project').trim();const blob=await makeProjectZip();const r=await fetch('/api/projects/save?name='+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/zip'},body:blob});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Save failed');await refreshSavedProjects(data.name);status('কম্পিউটারের New folder-এ স্থায়ীভাবে সেভ হয়েছে: '+data.name)}catch(e){status('Save failed: '+e.message);alert('প্রজেক্ট সেভ করা যায়নি। সার্ভার চালু আছে কি না দেখুন। '+e.message)}};
+$('openProject').onclick=async()=>{try{const name=$('savedProjects').value;if(!name){alert('Saved Projects থেকে একটি প্রজেক্ট বাছুন');return}const r=await fetch('/api/projects/open?name='+encodeURIComponent(name));if(!r.ok)throw new Error('Saved project পাওয়া যায়নি');const blob=await r.blob();await load([new File([blob],name+'.zip',{type:'application/zip'})]);$('projectName').value=name;status('কম্পিউটার থেকে প্রজেক্ট খোলা হয়েছে: '+name)}catch(e){status('Open failed: '+e.message);alert('প্রজেক্ট খোলা যায়নি। '+e.message)}};
+$('deleteProject').onclick=async()=>{const name=$('savedProjects').value;if(!name){alert('মুছতে Saved Projects থেকে একটি প্রজেক্ট বাছুন');return}if(!confirm('“'+name+'” প্রজেক্টটি কম্পিউটার থেকে মুছে ফেলবেন?'))return;try{const r=await fetch('/api/projects/delete?name='+encodeURIComponent(name),{method:'DELETE'});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Delete failed');await refreshSavedProjects();status('প্রজেক্ট কম্পিউটার থেকে মুছে ফেলা হয়েছে')}catch(e){status('Delete failed: '+e.message)}};
+refreshSavedProjects();
+
+$('files').onchange=async e=>{try{await load(e.target.files)}catch(err){status('Load error: '+err.message)}};
+
+(async()=>{try{const r=await fetch('/NID-HTML-Project.zip');if(r.ok){const b=await r.blob();await load([new File([b],'NID-HTML-Project.zip',{type:'application/zip'})]);$('projectName').value='NID HTML Project';await refreshSavedProjects('NID HTML Project');status('ডিফল্ট প্রজেক্ট স্বয়ংক্রিয়ভাবে খোলা হয়েছে। New folder/projects-এ স্থায়ী সেভ হবে।')}}catch(e){status('Default project load failed: '+e.message)}})();
+
+$('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='edited-html-project.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),10000);status('Export complete')}catch(e){alert(e.message)}};
+$('saveFullPermanentZip').onclick=async()=>{try{if(!doc)throw new Error('আগে HTML/ZIP প্রজেক্ট লোড করুন');if(typeof window.flushPermanentLayout==='function')window.flushPermanentLayout();const blob=await makeProjectZip();const base=(($('projectName')&&$('projectName').value)||currentHtml.replace(/\.(html?|htm)$/i,'')||'project').trim().replace(/[\\/:*?"<>|]+/g,'-');const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download=base+'-permanent-full-project.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);status('সম্পূর্ণ প্রজেক্ট ZIP তৈরি হয়েছে: Text Size, Position, HTML এবং সব project assets অন্তর্ভুক্ত');}catch(e){status('Full ZIP export failed: '+e.message);alert(e.message)}};
+
+// Keep the preview full-screen. The PDF / JSON / Editor Tools button opens one panel
+// containing all secondary actions plus the existing editor controls.
+(function(){
+ const header=document.querySelector('header');
+ const aside=document.querySelector('main>aside');
+ const toggle=document.getElementById('toggleEditorTools');
+ if(!header||!aside||!toggle||document.getElementById('allEditorTools')) return;
+ const panel=document.createElement('section');
+ panel.id='allEditorTools';
+ panel.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
+ aside.insertBefore(panel,aside.firstChild);
+ const actions=panel.querySelector('#allEditorActions');
+ const keep=new Set(['printPdf','toggleEditorTools','status']);
+ [...header.children].forEach(el=>{
+   if(el.tagName==='H2'||keep.has(el.id)) return;
+   actions.appendChild(el);
+ });
+ // Make controls fit the drawer instead of stretching the top bar.
+ actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:8px';
+ actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{el.style.maxWidth='100%';if(el.id==='projectName')el.style.width='100%'});
+})();
+const toolsToggle=document.getElementById('toggleEditorTools');
+if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.body.classList.toggle('tools-open');toolsToggle.setAttribute('aria-expanded',String(open));toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';});}
+
+
+</script><script src="html-template-map.js"></script><script src="addon.js"></script><script src="layout-positions.js"></script><script src="media-controls.js"></script><script src="auto-fit-media.js"></script><script src="smart-face.js"></script><script src="fingerprint-orientation.js"></script><script src="format-parser.js"></script><script>
+function collectStageStyles(){
+ let css='';
+ // Copy screen styles needed by the certificate, but skip editor-level @media print
+ // rules. Those rules target the editor layout and were causing extra blank pages.
+ const appendRules=(rules)=>{
+   for(const rule of [...rules]){
+     if(rule.type===CSSRule.MEDIA_RULE){
+       if(/print/i.test(rule.conditionText||rule.media?.mediaText||'')) continue;
+       try{css += rule.cssText+'\n'}catch(e){}
+     }else{
+       try{css += rule.cssText+'\n'}catch(e){}
+     }
+   }
+ };
+ for(const sheet of [...document.styleSheets]){
+   try{appendRules(sheet.cssRules)}catch(e){}
+ }
+ return css;
+}
+function stageDimensions(){
+ const r=stage.getBoundingClientRect();
+ // Include overflow content, not only the fixed editor canvas size.
+ const w=Math.max(parseFloat(stage.style.width)||0,stage.scrollWidth||0,r.width||0,1);
+ const h=Math.max(parseFloat(stage.style.height)||0,stage.scrollHeight||0,r.height||0,1);
+ return {w,h};
+}
+$('printPdf').onclick=()=>{
+ if(!doc){alert('আগে HTML/ZIP প্রজেক্ট লোড করুন');return}
+ let pw=null;
+ try{
+   pw=window.open('', '_blank');
+   if(!pw){alert('Print window blocked. Chrome-এ popup allow করে আবার চেষ্টা করুন।');return}
+   const rect=stage.getBoundingClientRect();
+   const stageW=Math.max(parseFloat(getComputedStyle(stage).width)||parseFloat(stage.style.width)||stage.scrollWidth||1,1);
+   const stageH=Math.max(parseFloat(getComputedStyle(stage).height)||parseFloat(stage.style.height)||stage.scrollHeight||1,1);
+   // Print the entire stage, not a crop computed from viewport rectangles.
+   // getBoundingClientRect() is viewport/scroll/zoom dependent; using those
+   // coordinates for the crop caused the top/side of the card to be clipped.
+   const minX=0, minY=0;
+   const cropW=Math.max(1,Math.ceil(stageW));
+   const cropH=Math.max(1,Math.ceil(stageH));
+   // One page uses the stage's full dimensions at 96 CSS px per inch.
+   const fitScale=1;
+   const pageWmm=Math.max(1,cropW*25.4/96), pageHmm=Math.max(1,cropH*25.4/96);
+   const a4Wpx=cropW, a4Hpx=cropH;
+   const offsetX=0, offsetY=0;
+   const clone=stage.cloneNode(true);
+   // Freeze typography from the live HTML preview before opening the print window.
+   // This prevents responsive @media rules (triggered when DevTools narrows the
+   // browser viewport) from shrinking text in the print document.
+   const sourceTypography=[stage,...stage.querySelectorAll('*')];
+   const cloneTypography=[clone,...clone.querySelectorAll('*')];
+   sourceTypography.forEach((sourceEl,i)=>{
+     const target=cloneTypography[i];
+     if(!target || !target.style) return;
+     const cs=getComputedStyle(sourceEl);
+     ['font-size','font-family','font-weight','font-style','line-height',
+      'letter-spacing','word-spacing','text-transform','text-indent',
+      '-webkit-text-size-adjust','text-size-adjust'].forEach(prop=>{
+        const value=cs.getPropertyValue(prop);
+        if(value) target.style.setProperty(prop,value,'important');
+     });
+   });
+   // Print-only typography repair: the DOB, NID number and issue-date values
+   // were inheriting smaller per-field font sizes. Keep the editor unchanged.
+   // Match the smallest element containing each label/value and normalize its
+   // font size only when it is clearly a target field.
+   // Keep all text styles exactly as they are in the HTML preview.
+   // No print-only font-size overrides are applied.
+   // Shift the complete stage by the measured content bounds, then scale once.
+   // Use setProperty so existing inline styles cannot silently override it.
+   clone.style.setProperty('position','absolute','important');
+   clone.style.setProperty('left','0px','important');
+   clone.style.setProperty('top','0px','important');
+   clone.style.setProperty('width',stageW+'px','important');
+   clone.style.setProperty('height',stageH+'px','important');
+   clone.style.setProperty('margin','0','important');
+   clone.style.setProperty('transform','scale('+fitScale+')','important');
+   clone.style.setProperty('transform-origin','top left','important');
+   clone.style.setProperty('box-shadow','none','important');
+   clone.style.setProperty('background','#fff','important');
+   clone.style.setProperty('overflow','visible','important');
+   clone.querySelectorAll('.selected,.editable.selected,[data-editor-ui],.resize-handle,.selection-box,.drag-handle,.editor-only').forEach(el=>el.remove());
+   const css=collectStageStyles().replace(/@page[^{}]*\{[^}]*\}/gi,'');
+   pw.document.open();
+   pw.document.write('<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NID PDF</title><style>@page{size:'+pageWmm+'mm '+pageHmm+'mm;margin:0}*{box-sizing:border-box}html,body{margin:0!important;padding:0!important;width:'+a4Wpx+'px!important;height:'+a4Hpx+'px!important;min-width:'+a4Wpx+'px!important;min-height:'+a4Hpx+'px!important;max-width:'+a4Wpx+'px!important;max-height:'+a4Hpx+'px!important;overflow:visible!important;background:#fff!important;color:#000!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}#print-root{position:relative!important;display:block!important;width:'+a4Wpx+'px!important;height:'+a4Hpx+'px!important;min-width:'+a4Wpx+'px!important;min-height:'+a4Hpx+'px!important;max-width:'+a4Wpx+'px!important;max-height:'+a4Hpx+'px!important;margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:avoid-page!important;page-break-after:avoid!important}#stage{position:absolute!important;left:0!important;top:0!important;transform:none!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}.selected,.editable.selected{outline:none!important}@media screen{body{padding:12px!important;width:auto!important;height:auto!important}#print-root{outline:1px solid #bbb}}@media print{html,body,#print-root{margin:0!important;padding:0!important;overflow:visible!important;break-before:avoid!important;break-after:avoid!important;page-break-before:avoid!important;page-break-after:avoid!important}}</style><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>/* Do not override the content-sized @page declared above. A second A4 rule here caused Chrome to repaginate/scale the print output. */html,body,#print-root{margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;break-before:avoid!important;break-after:avoid!important;page-break-before:avoid!important;page-break-after:avoid!important}#stage,#print-root,#print-root *{box-shadow:none!important}#stage{background:#fff!important} #print-root{break-inside:avoid!important;page-break-inside:avoid!important;overflow:visible!important}body{break-after:avoid!important;page-break-after:avoid!important}@media print{@page{size:'+pageWmm+'mm '+pageHmm+'mm;margin:0!important}html,body{break-before:avoid!important;break-after:avoid!important;page-break-before:avoid!important;page-break-after:avoid!important}#print-root{position:relative!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important}}</style></head><body><div id="print-root" style="width:'+a4Wpx+'px;height:'+a4Hpx+'px">'+clone.outerHTML+'</div></body></html>');
+   pw.document.close();
+   const doPrint=()=>{try{pw.focus();pw.print()}catch(e){alert('PDF Print চালু করা যায়নি: '+e.message)}};
+   if(pw.document.readyState==='complete')setTimeout(doPrint,250);else pw.addEventListener('load',()=>setTimeout(doPrint,250),{once:true});
+ }catch(e){try{pw&&pw.close()}catch(_){} alert('PDF তৈরি করা যায়নি: '+e.message)}
+};
+$('downloadImage').onclick=async()=>{
+ if(!doc){alert('আগে HTML/ZIP প্রজেক্ট লোড করুন');return}
+ try{
+   const {w,h}=stageDimensions(),scale=2;
+   const clone=stage.cloneNode(true);
+   clone.querySelectorAll('.selected,.editable.selected').forEach(el=>{el.classList.remove('selected');el.style.outline='none'});
+   clone.style.transform='none';clone.style.margin='0';clone.style.width=w+'px';clone.style.height=h+'px';
+   const styles=collectStageStyles();
+   const svgDoc=document.implementation.createDocument('http://www.w3.org/2000/svg','svg',null);
+   const svg=svgDoc.documentElement;
+   svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+   svg.setAttribute('width',String(Math.ceil(w*scale)));svg.setAttribute('height',String(Math.ceil(h*scale)));
+   svg.setAttribute('viewBox','0 0 '+w+' '+h);
+   const fo=svgDoc.createElementNS('http://www.w3.org/2000/svg','foreignObject');
+   fo.setAttribute('width','100%');fo.setAttribute('height','100%');
+   const div=svgDoc.createElementNS('http://www.w3.org/1999/xhtml','div');
+   div.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+   const style=svgDoc.createElementNS('http://www.w3.org/1999/xhtml','style');style.textContent=styles;
+   div.appendChild(style);
+   const holder=svgDoc.createElementNS('http://www.w3.org/1999/xhtml','div');
+   holder.innerHTML=clone.outerHTML;
+   while(holder.firstChild)div.appendChild(svgDoc.importNode(holder.firstChild,true));
+   fo.appendChild(div);svg.appendChild(fo);
+   const serialized=new XMLSerializer().serializeToString(svg);
+   const blob=new Blob([serialized],{type:'image/svg+xml;charset=utf-8'});
+   const url=URL.createObjectURL(blob),img=new Image();
+   img.onload=()=>{
+     try{
+       const canvas=document.createElement('canvas');canvas.width=Math.ceil(w*scale);canvas.height=Math.ceil(h*scale);
+       const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+       canvas.toBlob(png=>{
+         if(!png){alert('PNG তৈরি হয়নি। Print / PDF ব্যবহার করুন।');URL.revokeObjectURL(url);return}
+         const a=document.createElement('a');const pngUrl=URL.createObjectURL(png);a.href=pngUrl;a.download='html-preview.png';document.body.appendChild(a);a.click();a.remove();
+         setTimeout(()=>URL.revokeObjectURL(pngUrl),15000);URL.revokeObjectURL(url);status('PNG image downloaded');
+       },'image/png');
+     }catch(err){URL.revokeObjectURL(url);alert('ছবি তৈরি করা যায়নি: '+err.message)}
+   };
+   img.onerror=()=>{URL.revokeObjectURL(url);alert('এই HTML-এর কিছু ইমেজ/ফন্ট PNG export-এ সমর্থিত হয়নি। Print / PDF ব্যবহার করুন।')};
+   img.src=url;
+ }catch(err){alert('ইমেজ ডাউনলোড ব্যর্থ: '+err.message)}
+};
+</script>
+
+
+</body></html>
