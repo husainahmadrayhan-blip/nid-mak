@@ -101,6 +101,47 @@ class Handler(SimpleHTTPRequestHandler):
                 return json_reply(self, 200, {'ok': True, 'name': name})
             except Exception as exc:
                 return json_reply(self, 400, {'ok': False, 'error': str(exc)})
+        if parsed.path == '/api/remove-background':
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 12 * 1024 * 1024:
+                    raise ValueError('ছবির ডেটা ১২ MB-এর মধ্যে হতে হবে')
+                payload = json.loads(self.rfile.read(size))
+                raw = base64.b64decode(payload['image'].split(',', 1)[-1], validate=True)
+                import cv2, numpy as np
+                image = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+                if image is None:
+                    raise ValueError('ছবিটি পড়া যায়নি। JPG বা PNG ছবি দিন।')
+                h, w = image.shape[:2]
+                if w < 40 or h < 40:
+                    raise ValueError('ছবির রেজোলিউশন খুব ছোট')
+                # Limit GrabCut memory use on large mobile photos.
+                scale = min(1.0, 1500.0 / max(w, h))
+                if scale < 1.0:
+                    image = cv2.resize(image, (max(40, int(w * scale)), max(40, int(h * scale))), interpolation=cv2.INTER_AREA)
+                h, w = image.shape[:2]
+                margin = max(2, int(min(w, h) * 0.035))
+                rect = (margin, margin, max(1, w - 2 * margin), max(1, h - 2 * margin))
+                mask = np.zeros((h, w), np.uint8)
+                bgd = np.zeros((1, 65), np.float64)
+                fgd = np.zeros((1, 65), np.float64)
+                cv2.grabCut(image, mask, rect, bgd, fgd, 5, cv2.GC_INIT_WITH_RECT)
+                alpha = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+                # Clean isolated noise and soften the cutout edge slightly.
+                kernel = np.ones((3, 3), np.uint8)
+                alpha = cv2.morphologyEx(alpha, cv2.MORPH_OPEN, kernel, iterations=1)
+                alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel, iterations=1)
+                alpha = cv2.GaussianBlur(alpha, (0, 0), 1.0)
+                rgba = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+                rgba[:, :, 3] = alpha
+                ok, encoded = cv2.imencode('.png', rgba, [cv2.IMWRITE_PNG_COMPRESSION, 6])
+                if not ok:
+                    raise RuntimeError('Transparent PNG তৈরি করা যায়নি')
+                result = 'data:image/png;base64,' + base64.b64encode(encoded.tobytes()).decode('ascii')
+                return json_reply(self, 200, {'ok': True, 'image': result, 'width': w, 'height': h,
+                    'method': 'OpenCV GrabCut', 'note': 'ফলাফল ছবির background ও আলো অনুযায়ী বদলাতে পারে; edge/চুল হাতে পরীক্ষা করুন।'})
+            except Exception as exc:
+                return json_reply(self, 400, {'ok': False, 'error': str(exc)})
         if parsed.path == '/api/face':
             try:
                 size=int(self.headers.get('Content-Length','0'))

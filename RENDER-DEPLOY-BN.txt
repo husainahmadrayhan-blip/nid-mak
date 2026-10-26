@@ -21,3 +21,20 @@ Deploy করার নিয়ম:
 - Render-এ Docker build এই পরিবেশে চালিয়ে যাচাই করা হয়নি; স্থানীয়ভাবে Python syntax, YAML, এবং ZIP integrity যাচাই করা হয়েছে।
 - Render Free service-এর local filesystem স্থায়ী নয়। `projects/`, `user-export/` বা অন্যান্য ফাইল restart/redeploy-এ হারাতে পারে। স্থায়ী ফাইলের জন্য persistent disk বা external object storage প্রয়োজন।
 - Docker Chromium ইনস্টল করে, কিন্তু মূল অ্যাপে Playwright browser workflow না থাকলে শুধু install করার মাধ্যমে নতুন automation feature তৈরি হয় না।
+
+
+Mobile + Background Removal Update
+----------------------------------
+- Responsive CSS overrides were added to the main editor and visual-editor.
+- Smart Face panel now includes "Remove Background".
+- New POST /api/remove-background endpoint uses OpenCV GrabCut and returns transparent PNG.
+- Background removal is heuristic (not a cloud AI model); results depend on subject/background contrast and should be reviewed, especially hair and complex backgrounds.
+- Deploy all changed files including server.py, smart-face.js, index.html, visual-editor/index.html to GitHub. Keep the Dockerfile and render.yaml from this package.
+
+
+Mobile Bengali Font Fix
+-----------------------
+- FreeSerif Bengali regular and bold are now embedded directly in both editor HTML files as data:font/ttf;base64 URLs. Mobile browsers no longer depend on a relative fonts/ URL for this bundled font.
+- Light theme body fallback uses the bundled Bengali-capable font.
+- Only fonts actually bundled with the project can be guaranteed. Nikosh/SolaimanLipi/SutonnyMJ labels in a font dropdown do not mean those font files are included. For those exact typefaces, add legally usable .ttf/.otf files and embed them too.
+- For extracted/downloaded standalone HTML to display the same font, keep its font-face rules with embedded data URLs in the exported HTML; do not export only font-family names.

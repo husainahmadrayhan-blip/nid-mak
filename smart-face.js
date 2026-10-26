@@ -3,7 +3,7 @@ const KEY='visual-editor:smart-face:v1';
 const defaults={faceSize:68,verticalCenter:44,align:true,crop:true};
 let config;try{config={...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(_){config={...defaults}}
 const pane=document.createElement('section');pane.style.cssText='padding:12px;margin-top:12px;border:1px solid #536781;border-radius:8px;background:#152c42';
-pane.innerHTML='<h3 style="margin:0 0 8px">📷 Smart Face + Fixed Photo Box</h3><p style="font-size:12px">Photo box-এর Width/Height ও Position একবার Save layout করুন। মুখ শনাক্ত হলে সেটিকে একই অনুপাতে ফ্রেমে বসানো হবে। না হলে Manual Crop ব্যবহার করুন। সম্পূর্ণ অফলাইন।</p><label>Face width (%) <input id="sf-size" type="number" min="30" max="95" style="width:68px"></label><label style="display:block;margin:8px 0">Face vertical center (%) <input id="sf-y" type="number" min="15" max="85" style="width:68px"></label><label style="display:block"><input type="checkbox" id="sf-align"> Auto face alignment</label><label style="display:block"><input type="checkbox" id="sf-crop"> Auto crop to photo box</label><label style="display:block;margin-top:8px">Manual horizontal center (%) <input id="sf-xmanual" type="number" min="0" max="100" value="50" style="width:65px"></label><label style="display:block;margin-top:8px">Manual zoom (%) <input id="sf-zoom" type="number" min="50" max="400" value="100" style="width:65px"></label><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:9px"><button type="button" id="sf-save">Save Photo Settings</button><button type="button" id="sf-apply">Reprocess Photo</button></div><div id="sf-msg" style="font-size:12px;margin-top:8px;overflow-wrap:anywhere"></div>';
+pane.innerHTML='<h3 style="margin:0 0 8px">📷 Smart Face + Fixed Photo Box</h3><p style="font-size:12px">Photo box-এর Width/Height ও Position একবার Save layout করুন। মুখ শনাক্ত হলে সেটিকে একই অনুপাতে ফ্রেমে বসানো হবে। না হলে Manual Crop ব্যবহার করুন। সম্পূর্ণ অফলাইন।</p><label>Face width (%) <input id="sf-size" type="number" min="30" max="95" style="width:68px"></label><label style="display:block;margin:8px 0">Face vertical center (%) <input id="sf-y" type="number" min="15" max="85" style="width:68px"></label><label style="display:block"><input type="checkbox" id="sf-align"> Auto face alignment</label><label style="display:block"><input type="checkbox" id="sf-crop"> Auto crop to photo box</label><label style="display:block;margin-top:8px">Manual horizontal center (%) <input id="sf-xmanual" type="number" min="0" max="100" value="50" style="width:65px"></label><label style="display:block;margin-top:8px">Manual zoom (%) <input id="sf-zoom" type="number" min="50" max="400" value="100" style="width:65px"></label><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:9px"><button type="button" id="sf-save">Save Photo Settings</button><button type="button" id="sf-apply">Reprocess Photo</button><button type="button" id="sf-remove-bg">✂ Remove Background</button></div><div id="sf-msg" style="font-size:12px;margin-top:8px;overflow-wrap:anywhere"></div>';
 document.querySelector('aside').append(pane);
 const $s=id=>document.getElementById(id),note=t=>$s('sf-msg').textContent=t;
 function show(){ $s('sf-size').value=config.faceSize;$s('sf-y').value=config.verticalCenter;$s('sf-align').checked=config.align;$s('sf-crop').checked=config.crop }show();
@@ -47,6 +47,27 @@ async function process(el,original){if(!el||!el.isConnected)return;const src=ori
 }
 const oldFit=window.fitMediaElement;
 window.fitMediaElement=function(el,src){if(el?.getAttribute('data-image-role')==='photo'){process(el,src);return}return oldFit?.(el,src)};
+$s('sf-remove-bg').onclick=async()=>{
+ save();
+ const el=doc?.querySelector('[data-image-role="photo"]');
+ if(!el){note('Photo not found. আগে photo image যোগ/সিলেক্ট করুন।');return}
+ const src=originalSources.get(el)||el.getAttribute('data-photo-original')||el.getAttribute('src');
+ if(!src){note('Photo source পাওয়া যায়নি');return}
+ const btn=$s('sf-remove-bg');btn.disabled=true;btn.textContent='Processing…';note('Background remove হচ্ছে। ছবির আকার অনুযায়ী কিছু সময় লাগতে পারে…');
+ try{
+  const img=await loadImage(src);
+  const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+  canvas.getContext('2d').drawImage(img,0,0);
+  const r=await fetch('/api/remove-background',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:canvas.toDataURL('image/jpeg',0.92)})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.image)throw Error(data.error||('Server error '+r.status));
+  if(typeof snap==='function')snap();
+  originalSources.set(el,data.image);el.setAttribute('data-photo-original',data.image);el.setAttribute('src',data.image);
+  if(typeof render==='function')render();
+  note('✓ Background remove হয়েছে। '+(data.note||'Transparent PNG তৈরি হয়েছে।'));
+ }catch(e){note('Background remove হয়নি: '+e.message+'। সার্ভার চালু আছে এবং OpenCV install আছে কি না দেখুন।')}
+ finally{btn.disabled=false;btn.textContent='✂ Remove Background'}
+};
 $s('sf-apply').onclick=()=>{save();const el=doc?.querySelector('[data-image-role="photo"]');if(!el){note('Photo not found');return}process(el,originalSources.get(el)||el.getAttribute('src'))};
 window.smartFaceReprocess=()=>{const el=doc?.querySelector('[data-image-role="photo"]');if(el)process(el,originalSources.get(el)||el.getAttribute('src'))};
 })();
