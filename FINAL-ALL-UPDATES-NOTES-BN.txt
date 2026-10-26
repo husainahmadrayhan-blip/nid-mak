@@ -1,0 +1,10 @@
+PLAYWRIGHT FINAL ALL UPDATES (Bangla)
+
+This package combines the latest available project updates:
+- Render Docker runtime files (Dockerfile and render.yaml)
+- Mobile background-removal endpoint/UI from the mobile fix package
+- SolaimanLipi Normal and Thin font embedding in HTML files
+- Print styles preserving text/font colors and background colors/images where supported by the browser
+
+Validation performed: ZIP integrity, Python syntax check, JavaScript syntax check where Node.js is available, and presence checks for deployment/font files.
+Not verified: live Render deployment, real Android device rendering, or physical/PDF print output. Browser print settings may still require enabling Background graphics.
