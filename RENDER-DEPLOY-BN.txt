@@ -1,0 +1,16 @@
+Render Deploy নির্দেশিকা (বাংলা)
+=================================
+
+1. ZIP extract করে সব ফাইল GitHub repository-এর root-এ upload/commit করুন।
+2. `render.yaml` অবশ্যই repository-এর root-এ থাকতে হবে এবং `main` branch-এ commit হতে হবে।
+3. Render Dashboard → New → Blueprint নির্বাচন করে repository `husainahmadrayhan-blip/nid-mak` সংযুক্ত করুন।
+4. Blueprint path চাইলে `render.yaml` দিন। তারপর Apply/Deploy করুন।
+5. Build ধাপে requirements install হবে এবং Playwright-এর Chromium ও Linux dependencies install হবে।
+6. Deploy শেষ হলে `/health` URL-এ `{"ok": true, "service": "visual-html-editor"}` পাওয়া উচিত।
+
+গুরুত্বপূর্ণ সীমাবদ্ধতা:
+- Render-এর Free Web Service-এর local filesystem স্থায়ী storage নয়। Saved Projects-এর ফাইল redeploy/restart বা instance replacement-এর পরে হারাতে পারে।
+- এই অ্যাপের project save/open/delete সুবিধা server-এর `projects/` folder ব্যবহার করে। স্থায়ী cloud persistence প্রয়োজন হলে Render-এ supported persistent disk (যেখানে উপলব্ধ) অথবা object storage/database যুক্ত করতে হবে।
+- Playwright/Chromium install করা হয়েছে, তবে মূল `server.py`-তে বর্তমানে browser automation/session API নেই; শুধু package ইনস্টল করলেই নতুন Playwright feature তৈরি হয় না।
+- OpenCV face-detection API রাখা হয়েছে। Linux-এ প্রয়োজনীয় dependencies build/install হওয়া environment অনুযায়ী যাচাই করুন।
+- Local Windows চালানোর জন্য বিদ্যমান `RUN-LOCAL-WINDOWS.bat` এবং অন্যান্য ফাইল রাখা হয়েছে।

@@ -32,6 +32,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Browsers request this automatically; the editor has no favicon asset.
         if parsed.path == '/favicon.ico':
             self.send_response(204); self.send_header('Content-Length', '0'); self.end_headers(); return
+        if parsed.path == '/health':
+            return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -157,11 +159,21 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Type','application/json; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers();self.wfile.write(body)
-# Playwright's synchronous API is thread-affine. Use a single-threaded local HTTP server
-# so browser startup, status checks, and PDF uploads all run on the same thread.
-s=HTTPServer(('127.0.0.1',0),Handler)
-url=f'http://127.0.0.1:{s.server_port}/'
-print('Editor:',url,flush=True)
-print('Permanent projects folder:', str(PROJECTS_DIR), flush=True)
-threading.Timer(1,lambda:webbrowser.open(url)).start()
+# Keep the single-threaded server used by the existing local workflow.
+# Render requires binding to 0.0.0.0 and using the PORT environment variable.
+IS_RENDER = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
+if IS_RENDER:
+    HOST = '0.0.0.0'
+    PORT = int(os.environ.get('PORT', '10000'))
+    s = HTTPServer((HOST, PORT), Handler)
+    print(f'Editor listening on {HOST}:{PORT}', flush=True)
+    print('Health check: /health', flush=True)
+    print('Projects directory (ephemeral on standard Render disks):', str(PROJECTS_DIR), flush=True)
+else:
+    s = HTTPServer(('127.0.0.1', 0), Handler)
+    url = f'http://127.0.0.1:{s.server_port}/'
+    print('Editor:', url, flush=True)
+    print('Permanent projects folder:', str(PROJECTS_DIR), flush=True)
+    threading.Timer(1, lambda: webbrowser.open(url)).start()
+
 s.serve_forever()

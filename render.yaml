@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: nid-mak-editor
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: >-
+      python -m pip install --upgrade pip &&
+      python -m pip install -r requirements.txt &&
+      python -m playwright install --with-deps chromium
+    startCommand: python server.py
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: PYTHONUNBUFFERED
+        value: "1"
