@@ -118,11 +118,12 @@ ui.innerHTML=`
 #addon-sidebar-tools .app-actions button{font-size:11px;padding:7px 8px;min-height:32px}
 </style>
 <div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">তথ্য পূরণ করুন অথবা PDF আপলোড করুন</div></div></div>
+<div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div>
 <div class="app-media-grid app-top-uploads">
  <div class="app-upload app-upload-tile"><label for="addon-photo-file"><span class="upload-icon">▣</span><span>ফটো আপলোড</span><small>আপনার ছবি এখানে আপলোড করুন</small></label><div class="upload-drop"><span class="upload-cloud">↑</span><b>এখানে ফাইল আপলোড করুন</b><small>অথবা ফাইল নির্বাচন করুন</small><small>JPG, PNG (সর্বোচ্চ 2 MB)</small><input id="addon-photo-file" type="file" accept="image/*" aria-label="ফটো আপলোড"></div></div>
  <div class="app-upload app-upload-tile"><label for="addon-sign-file"><span class="upload-icon">▤</span><span>আইডি স্বাক্ষর</span><small>আইডি স্বাক্ষর আপলোড করুন</small></label><div class="upload-drop"><span class="upload-cloud">↑</span><b>এখানে ফাইল আপলোড করুন</b><small>অথবা ফাইল নির্বাচন করুন</small><small>JPG, PNG (সর্বোচ্চ 2 MB)</small><input id="addon-sign-file" type="file" accept="image/*" aria-label="আইডি স্বাক্ষর"><select id="addon-sign-type"><option value="signature">Signature</option><option value="fingerprint">Fingerprint</option></select></div></div>
 </div>
-<div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div>
+
 <div class="app-section"><h4><span>▣</span> আইডি তথ্য</h4><div class="app-grid" id="addon-basic-fields"></div></div>
 <div class="app-section"><h4><span>♟</span> ব্যক্তিগত তথ্য</h4><div class="app-grid" id="addon-personal-fields"></div></div>
 <div class="app-section"><h4><span>♟♟</span> পারিবারিক তথ্য</h4><div class="app-grid" id="addon-family-fields"></div></div>
