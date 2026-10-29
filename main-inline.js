@@ -58,8 +58,8 @@ $('files').onchange=async e=>{try{await load(e.target.files)}catch(err){status('
 
 $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='edited-html-project.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),10000);status('Export complete')}catch(e){alert(e.message)}};
 
-// Keep the preview full-screen. The PDF / JSON / Editor Tools button opens one panel
-// containing all secondary actions plus the existing editor controls.
+// Create the Tools Drawer once. Existing controls are moved, not cloned,
+// so their event listeners and state remain attached.
 (function(){
  const header=document.querySelector('header');
  const aside=document.querySelector('main>aside');
@@ -72,15 +72,15 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  const actions=panel.querySelector('#allEditorActions');
  const keep=new Set(['printPdf','toggleEditorTools','status']);
  [...header.children].forEach(el=>{
-   if(el.tagName==='H2'||keep.has(el.id)) return;
+   if(el.tagName==='H2'||keep.has(el.id)||el.contains(toggle)) return;
    actions.appendChild(el);
  });
- // Make controls fit the drawer instead of stretching the top bar.
  actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:8px';
- actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{el.style.maxWidth='100%';if(el.id==='projectName')el.style.width='100%'});
+ actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{
+   el.style.maxWidth='100%';
+   if(el.id==='projectName')el.style.width='100%';
+ });
 })();
-const toolsToggle=document.getElementById('toggleEditorTools');
-if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.body.classList.toggle('tools-open');toolsToggle.setAttribute('aria-expanded',String(open));toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';});}
 
 /* Main workspace cleanup: move the real Format → HTML Auto Fill panel into the tools drawer.
    The panel is relocated structurally, rather than guessed from a random parent or hidden with CSS. */
