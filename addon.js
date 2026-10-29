@@ -17,7 +17,6 @@ ui.innerHTML=`
 
 /* User request: hide AI/helper buttons and PDF/JSON tools + field-mapping controls. Keep their DOM/handlers intact for compatibility. */
 #pdf-addon .app-footer,
-#pdf-addon #addon-advanced,
 #pdf-addon #addon-tools-jump,
 #pdf-addon #addon-fill-bottom { display:none !important; }
 @media(max-width:760px){#pdf-addon .app-pdf-row{grid-template-columns:1fr}#pdf-addon .app-main-actions button{flex:1 1 100%}}
@@ -109,6 +108,14 @@ ui.innerHTML=`
 #pdf-addon .app-status{font-size:10px;margin:5px 0}
 #pdf-addon .app-pdf-upload{margin-top:8px}
 @media(max-width:520px){#pdf-addon{padding:7px}#pdf-addon .app-top-uploads{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#pdf-addon .app-section{padding:8px;margin:6px 0}#pdf-addon .app-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}#pdf-addon .app-field input,#pdf-addon .app-field select{font-size:11px;padding:4px 6px}#pdf-addon .app-field textarea{min-height:68px}}
+
+#addon-sidebar-tools{margin:12px 8px;padding:12px;background:linear-gradient(145deg,#f8fcff,#eaf5ff);border:1px solid #c9e3f8;border-radius:12px;color:#17375d;box-shadow:0 5px 16px rgba(25,95,155,.09);font:13px system-ui,"Noto Sans Bengali",Arial,sans-serif}
+#addon-sidebar-tools h3{font-size:14px;margin:0 0 5px;color:#1257b3}
+#addon-sidebar-tools p{font-size:11px;color:#71839a;margin:0 0 9px}
+#addon-sidebar-tools #addon-advanced{display:block!important;margin:0;padding:9px;border-radius:9px;background:#fff}
+#addon-sidebar-tools #addon-advanced summary{font-size:12px}
+#addon-sidebar-tools #addon-json{min-height:110px;font-size:11px}
+#addon-sidebar-tools .app-actions button{font-size:11px;padding:7px 8px;min-height:32px}
 </style>
 <div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">তথ্য পূরণ করুন অথবা PDF আপলোড করুন</div></div></div>
 <div class="app-media-grid app-top-uploads">
@@ -138,6 +145,16 @@ staleAssetPreview.forEach(el=>el.remove());
 const workArea=document.getElementById('work');
 const stageHolder=document.getElementById('stage-holder');
 if(workArea){workArea.insertBefore(ui,stageHolder||workArea.firstChild)}else{document.querySelector('main>aside').append(ui)}
+// Keep advanced JSON/field-mapping controls in the editor sidebar instead of the main form.
+const toolsSidebar=document.querySelector('main>aside, #sidebar, .sidebar, [role="complementary"]');
+const advancedTools=by('addon-advanced');
+if(toolsSidebar&&advancedTools){
+ const toolGroup=document.createElement('section');
+ toolGroup.id='addon-sidebar-tools';
+ toolGroup.innerHTML='<h3>☰ PDF / JSON / Editor Tools</h3><p>ফরম্যাট পেস্ট, Parse এবং HTML Auto Fill-এর অতিরিক্ত টুলস</p>';
+ toolGroup.append(advancedTools);
+ toolsSidebar.append(toolGroup);
+}
 const msg=s=>by('addon-msg').textContent=s;
 const alias={name:['name','fullname','applicantname','নাম','আবেদনকারীরনাম'],nameBn:['namebn','banglaname','বাংলানাম'],nameEn:['nameen','englishname','ইংরেজিনাম'],fatherName:['fathername','father','পিতারনাম'],motherName:['mothername','mother','মাতারনাম'],birthDate:['birthdate','dob','dateofbirth','জন্মতারিখ'],dob:['dob','birthdate','dateofbirth','জন্মতারিখ','জন্মতারিখঃ','dateofbirth'],pinNumber:['pinnumber','pin','nid','nidnumber','nationalid','nationalidnumber','জাতীয়পরিচয়পত্রনম্বর','এনআইডি','জাতীয়পরিচয়পত্র'],birthPlace:['birthplace','placeofbirth','birthlocation','জন্মস্থান','জন্মস্থানেরনাম'],birthRegNo:['birthregno','brn','জন্মনিবন্ধন'],documentNumber:['documentnumber','idnumber','nidnumber','জাতীয়পরিচয়পত্রনম্বর'],gender:['gender','লিঙ্গ'],permanentAddress:['permanentaddress','স্থায়ীঠিকানা'],presentAddress:['presentaddress','বর্তমানঠিকানা'],address:['address','ঠিকানা'],mobile:['mobile','phone','মোবাইল'],bloodGroup:['bloodgroup','রক্তেরগ্রুপ']};
 const normalize=s=>String(s||'').toLowerCase().replace(/[\s_\-.:()\[\]#]/g,'');
