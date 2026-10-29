@@ -14,27 +14,7 @@ let missingAssets=new Set();
 function collectStyle(){let css='';cssPaths=[];missingAssets.clear();for(let link of doc.querySelectorAll('link[rel="stylesheet"]')){let href=link.getAttribute('href');let p=findPath(pathResolve(currentHtml,href||''));if(p){cssPaths.push(p);css+='\n'+resolveCssUrls(fileMap.get(p).text,p)+'\n'}else if(href)missingAssets.add(href)}for(let st of doc.querySelectorAll('style'))css+='\n'+resolveCssUrls(st.textContent,currentHtml)+'\n';return css}
 function render(){selected=null;drag=null;stage.replaceChildren();if(!doc)return;let style=document.createElement('style');style.textContent=collectStyle();stage.append(style);
 let body=doc.body.cloneNode(true);body.querySelectorAll('script,iframe,object,embed').forEach(e=>e.remove());
- // Hide the Format → HTML Auto Fill block from the rendered main preview on mobile.
- // It lives inside the loaded project HTML, so this must run on every render().
- if(window.matchMedia('(max-width: 800px)').matches){
-   const all=[...body.querySelectorAll('*')];
-   const parse=all.find(el=>el.children.length===0&&/normal\s*parse/i.test((el.textContent||'').trim()));
-   const apply=all.find(el=>el.children.length===0&&/apply\s*to\s*html/i.test((el.textContent||'').trim()));
-   if(parse&&apply){
-     let block=parse;
-     while(block&&block!==body&&!(block.contains(apply)&&block.querySelectorAll('textarea').length>=1))block=block.parentElement;
-     if(block&&block!==body)block.remove();
-   }
-   // Fallback for projects where the format panel is identified by its heading.
-   if(!parse||!apply){
-     const heading=all.find(el=>el.children.length===0&&/format\s*[→>-]\s*html\s*auto\s*fill/i.test((el.textContent||'').trim()));
-     if(heading){
-       let block=heading;
-       while(block&&block!==body&&block.querySelectorAll('textarea').length<1)block=block.parentElement;
-       if(block&&block!==body)block.remove();
-     }
-   }
- }let sourceNodes=[...doc.body.querySelectorAll('*')],targetNodes=[...body.querySelectorAll('*')];body.setAttribute('data-editor-root','');stage.append(body);stage.style.width='auto';stage.style.height='auto';let sw=parseFloat(getComputedStyle(body).width),sh=parseFloat(getComputedStyle(body).height);const originalWidth=sw,originalHeight=sh;if(!Number.isFinite(sw)||sw<200||sw>10000)sw=800;if(!Number.isFinite(sh)||sh<100||sh>10000)sh=500;const bg=body.querySelector('img');if(bg){const iw=parseFloat(bg.getAttribute('width'))||0,ih=parseFloat(bg.getAttribute('height'))||0;if(iw>sw&&iw<=10000)sw=iw;if(ih>sh&&ih<=10000)sh=ih;}const sized=[...body.querySelectorAll('*')].filter(e=>e!==bg);for(const e of sized){const cs=getComputedStyle(e);const left=parseFloat(cs.left),top=parseFloat(cs.top),w=parseFloat(cs.width),h=parseFloat(cs.height);if(cs.position==='absolute'&&Number.isFinite(left)&&Number.isFinite(w))sw=Math.max(sw,left+w);if(cs.position==='absolute'&&Number.isFinite(top)&&Number.isFinite(h))sh=Math.max(sh,top+h);}sw=Math.min(10000,Math.ceil(sw));sh=Math.min(10000,Math.ceil(sh));stage.style.width=sw+'px';stage.style.height=sh+'px';body.style.width='100%';body.style.height='100%';body.style.margin='0';body.style.position='relative';body.style.overflow='hidden';body.querySelectorAll('[data-new-editor-text]').forEach(e=>{e.style.zIndex='9999';e.style.pointerEvents='auto'});
+let sourceNodes=[...doc.body.querySelectorAll('*')],targetNodes=[...body.querySelectorAll('*')];body.setAttribute('data-editor-root','');stage.append(body);stage.style.width='auto';stage.style.height='auto';let sw=parseFloat(getComputedStyle(body).width),sh=parseFloat(getComputedStyle(body).height);const originalWidth=sw,originalHeight=sh;if(!Number.isFinite(sw)||sw<200||sw>10000)sw=800;if(!Number.isFinite(sh)||sh<100||sh>10000)sh=500;const bg=body.querySelector('img');if(bg){const iw=parseFloat(bg.getAttribute('width'))||0,ih=parseFloat(bg.getAttribute('height'))||0;if(iw>sw&&iw<=10000)sw=iw;if(ih>sh&&ih<=10000)sh=ih;}const sized=[...body.querySelectorAll('*')].filter(e=>e!==bg);for(const e of sized){const cs=getComputedStyle(e);const left=parseFloat(cs.left),top=parseFloat(cs.top),w=parseFloat(cs.width),h=parseFloat(cs.height);if(cs.position==='absolute'&&Number.isFinite(left)&&Number.isFinite(w))sw=Math.max(sw,left+w);if(cs.position==='absolute'&&Number.isFinite(top)&&Number.isFinite(h))sh=Math.max(sh,top+h);}sw=Math.min(10000,Math.ceil(sw));sh=Math.min(10000,Math.ceil(sh));stage.style.width=sw+'px';stage.style.height=sh+'px';body.style.width='100%';body.style.height='100%';body.style.margin='0';body.style.position='relative';body.style.overflow='hidden';body.querySelectorAll('[data-new-editor-text]').forEach(e=>{e.style.zIndex='9999';e.style.pointerEvents='auto'});
 let all=[body,...targetNodes];for(let el of all){for(let attr of ['src','poster'])if(el.hasAttribute(attr))el.setAttribute(attr,asset(currentHtml,el.getAttribute(attr)));if(el.hasAttribute('style'))el.style.backgroundImage=resolveCssUrls(el.style.backgroundImage,currentHtml)}
 let nodes=[...body.querySelectorAll('*')];nodes.forEach((el,i)=>{if(!['SCRIPT','STYLE','LINK','META','BR'].includes(el.tagName)&&!el.closest('[data-editor-ignore]')){el.dataset.editorIndex=i;el.addEventListener('pointerdown',e=>startDrag(e,el));}});body.addEventListener('pointerdown',e=>{if(e.target===body)select(body)});status(missingAssets.size?'Missing background/assets: '+[...missingAssets].slice(0,3).join(', '):'Loaded — '+nodes.length+' elements');requestAnimationFrame(()=>{if(autoFit)fitScreen();else applyZoom();});body.querySelectorAll('img').forEach(img=>{if(!img.complete)img.addEventListener('load',()=>{if(autoFit)fitScreen()},{once:true})});}
 function sourceFor(el){if(!el)return null;if(el===stage.firstElementChild)return doc.body;if(el===stage.querySelector('[data-editor-root]'))return doc.body;let idx=el.dataset.editorIndex;if(idx===undefined)return null;return doc.body.querySelectorAll('*')[Number(idx)]||null}
@@ -102,9 +82,92 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
 const toolsToggle=document.getElementById('toggleEditorTools');
 if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.body.classList.toggle('tools-open');toolsToggle.setAttribute('aria-expanded',String(open));toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';});}
 
-/* Main workspace cleanup: keep only the compact tools menu visible above the canvas.
-   All toolbar/status/format controls remain reachable inside the tools drawer. */
+/* Main workspace cleanup: move the real Format → HTML Auto Fill panel into the tools drawer.
+   The panel is relocated structurally, rather than guessed from a random parent or hidden with CSS. */
 (function(){
+ const header=document.querySelector('header');
+ const aside=document.querySelector('main>aside');
+ const toggle=document.getElementById('toggleEditorTools');
+ if(!header||!aside||!toggle) return;
+
+ let panel=document.getElementById('allEditorTools');
+ if(!panel){
+   panel=document.createElement('section');
+   panel.id='allEditorTools';
+   panel.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
+   aside.insertBefore(panel,aside.firstChild);
+ }
+ const actions=panel.querySelector('#allEditorActions');
+ if(!actions) return;
+
+ // Move existing main toolbar controls into the drawer without cloning them,
+ // so their original event handlers and state are preserved.
+ const keep=new Set(['printPdf','toggleEditorTools','status']);
+ [...header.children].forEach(el=>{
+   if(el.tagName==='H2'||keep.has(el.id)||el.contains(toggle)) return;
+   if(el.id==='allEditorTools'||el.contains(panel)) return;
+   actions.appendChild(el);
+ });
+ actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:8px';
+ actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{
+   el.style.maxWidth='100%';
+   if(el.id==='projectName')el.style.width='100%';
+ });
+
+ // Identify the panel by its actual heading and the controls that belong to it.
+ // Text is read from the full button, so nested spans/icons do not break matching.
+ const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+ const label=el=>[el.innerText,el.textContent,el.value,el.getAttribute('aria-label'),el.title].filter(Boolean).join(' ');
+ const controls=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')];
+ const parseBtn=controls.find(el=>/normalparse/.test(norm(label(el))));
+ const applyBtn=controls.find(el=>/applytohtml/.test(norm(label(el))));
+ const headings=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,legend,summary,[role="heading"],label,div,section')];
+ const formatHeading=headings.find(el=>{
+   const t=norm(label(el));
+   return /format.*html.*autofill/.test(t) && el.children.length<4;
+ });
+ let formatPanel=null;
+ if(parseBtn&&applyBtn&&formatHeading){
+   // Start from the heading and climb only until the first container that owns
+   // the heading, paste textarea, Parse button and Apply button together.
+   let candidate=formatHeading;
+   while(candidate&&candidate!==document.body){
+     if(candidate.contains(parseBtn)&&candidate.contains(applyBtn)&&candidate.querySelector('textarea')){
+       formatPanel=candidate;
+       break;
+     }
+     candidate=candidate.parentElement;
+   }
+ }
+ // Some projects label the paste area more explicitly than the heading.
+ if(!formatPanel&&parseBtn&&applyBtn){
+   const paste=[...document.querySelectorAll('textarea')].find(el=>{
+     const t=norm([el.placeholder,el.getAttribute('aria-label'),el.id,el.name].filter(Boolean).join(' '));
+     return /format|paste/.test(t);
+   });
+   if(paste){
+     let candidate=paste;
+     while(candidate&&candidate!==document.body){
+       const t=norm(label(candidate));
+       if(candidate.contains(parseBtn)&&candidate.contains(applyBtn)&&/format/.test(t)){
+         formatPanel=candidate;
+         break;
+       }
+       candidate=candidate.parentElement;
+     }
+   }
+ }
+ if(formatPanel&&formatPanel!==actions&&!actions.contains(formatPanel)){
+   formatPanel.dataset.movedFormatTools='true';
+   actions.appendChild(formatPanel);
+ }
+
+ const toolsToggle=toggle;
+ toolsToggle.addEventListener('click',()=>{
+   const open=document.body.classList.toggle('tools-open');
+   toolsToggle.setAttribute('aria-expanded',String(open));
+   toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';
+ });
  const style=document.createElement('style');
  style.id='mobile-main-ui-cleanup';
  style.textContent=`
@@ -112,68 +175,25 @@ if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.bo
    header{display:flex!important;flex-wrap:wrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
    header>*{display:none!important}
    header #toggleEditorTools{display:block!important;width:100%!important;max-width:none!important;margin:0!important}
-   header #toggleEditorTools button{width:100%!important}
    main>aside{display:none!important;width:100%!important;max-width:100%!important;margin:0!important}
    body.tools-open main>aside{display:block!important}
    #allEditorTools{display:block!important;margin:0!important;width:100%!important;max-width:100%!important}
-   #allEditorActions{max-height:70vh!important;overflow:auto!important}
+   #allEditorActions{max-height:70vh!important;overflow:auto!important;min-width:0!important}
+   #allEditorActions>*{max-width:100%!important;box-sizing:border-box!important}
    #status{display:none!important}
    #stage-holder,#stage{max-width:100%!important}
    body{overflow-x:hidden!important}
+   body:not(.tools-open) [data-moved-format-tools="true"]{display:none!important}
+   body.tools-open [data-moved-format-tools="true"]{display:block!important}
  }
  @media(min-width:801px){
    header>*{display:revert}
+   #allEditorTools{max-width:100%}
  }
  `;
  document.head.appendChild(style);
- // Move the full Format → HTML Auto Fill panel into the tools drawer and hide it on entry.
- const findButton=text=>[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>(el.textContent||el.value||'').trim().toLowerCase()===text.toLowerCase());
- // Find the complete format form from its distinctive textarea and both action buttons.
- const formatTextarea=[...document.querySelectorAll('textarea')].find(el=>/বাংলা\s*\/\s*ইংরেজি\s*ফরম্যাট/.test(el.placeholder||'') || /ফরম্যাট এখানে পেস্ট/.test(el.placeholder||''));
- const parseBtn=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>/normal\s*parse/i.test((el.textContent||el.value||'').trim()));
- const applyBtn=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>/apply\s*to\s*html/i.test((el.textContent||el.value||'').trim()));
- if(formatTextarea && parseBtn && applyBtn){
-   let formatPanel=formatTextarea.parentElement;
-   while(formatPanel && formatPanel!==document.body &&
-     !(formatPanel.contains(parseBtn) && formatPanel.contains(applyBtn))) formatPanel=formatPanel.parentElement;
-   // Choose the smallest ancestor that contains the paste box and both buttons.
-   if(formatPanel && formatPanel!==document.body){
-     let smaller=formatPanel;
-     while(smaller.parentElement && smaller.parentElement!==document.body &&
-       smaller.parentElement.contains(parseBtn) && smaller.parentElement.contains(applyBtn) &&
-       smaller.parentElement.contains(formatTextarea) &&
-       smaller.parentElement.querySelectorAll('textarea').length<=formatPanel.querySelectorAll('textarea').length){
-       // Keep the current smallest candidate; do not climb into the page shell.
-       break;
-     }
-     formatPanel.dataset.movedFormatTools='true';
-     actions.appendChild(formatPanel);
-   }
- }
- const style2=document.createElement('style');
- style2.textContent=`
-  @media(max-width:800px){
-    body:not(.tools-open) [data-moved-format-tools="true"]{display:none!important}
-    body.tools-open [data-moved-format-tools="true"]{display:block!important}
-  }
- `;
- document.head.appendChild(style2);
- // Collapse any expanded JSON tools on initial page load.
  document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
 function collectStageStyles(){
  let css='';
  // Copy screen styles needed by the certificate, but skip editor-level @media print
