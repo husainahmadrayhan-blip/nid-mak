@@ -198,3 +198,25 @@ $('downloadImage').onclick=async()=>{
    img.src=url;
  }catch(err){alert('ইমেজ ডাউনলোড ব্যর্থ: '+err.message)}
 };
+
+// Mobile-first cleanup: keep the work canvas visible and put secondary controls in the
+// three-bar drawer, rather than letting toolbar rows consume the top of the screen.
+(function(){
+ const aside=document.querySelector('main>aside');
+ const panel=document.getElementById('allEditorTools');
+ const actions=document.getElementById('allEditorActions');
+ if(!aside||!panel||!actions)return;
+ const moveToDrawer=el=>{if(el&&!actions.contains(el))actions.appendChild(el)};
+ const findText=(selector,patterns)=>[...document.querySelectorAll(selector)].find(el=>patterns.some(p=>(el.textContent||'').trim().toLowerCase().includes(p)));
+ moveToDrawer(findText('button,[role="button"],.filebtn',['save positions permanently','save positions','positions permanently']));
+ moveToDrawer(document.getElementById('printPdf'));
+ const title=document.querySelector('header h2');
+ if(title) title.style.display='none';
+ const saveLine=findText('div,p,span',['সেভ করা fingerprint/signature position','fingerprint/signature position প্রয়োগ']);
+ if(saveLine && saveLine!==actions && !panel.contains(saveLine)) saveLine.style.display='none';
+ const editorTitle=findText('h1,h2,h3',['visual html editor']);
+ if(editorTitle) editorTitle.style.display='none';
+ // The drawer is the only place for the large JSON/format textarea; never leave it
+ // expanded as a full-page block on initial mobile load.
+ document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
+})();
