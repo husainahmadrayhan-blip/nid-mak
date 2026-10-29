@@ -105,7 +105,30 @@ if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.bo
  }
  `;
  document.head.appendChild(style);
- // If the format textarea panel was left expanded by previous runs, collapse it.
+ // Move the full Format → HTML Auto Fill panel into the tools drawer and hide it on entry.
+ const findButton=text=>[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>(el.textContent||el.value||'').trim().toLowerCase()===text.toLowerCase());
+ const parseBtn=findButton('Normal Parse');
+ if(parseBtn){
+   let formatPanel=parseBtn;
+   for(let n=0;n<6&&formatPanel.parentElement;n++){
+     formatPanel=formatPanel.parentElement;
+     if(formatPanel.querySelectorAll('textarea').length>=1 &&
+        [...formatPanel.querySelectorAll('button,input[type="button"]')].some(b=>(b.textContent||b.value||'').trim()==='Apply to HTML')) break;
+   }
+   if(formatPanel && !actions.contains(formatPanel)){
+     formatPanel.dataset.movedFormatTools='true';
+     actions.appendChild(formatPanel);
+   }
+ }
+ const style2=document.createElement('style');
+ style2.textContent=`
+  @media(max-width:800px){
+    body:not(.tools-open) [data-moved-format-tools="true"]{display:none!important}
+    body.tools-open [data-moved-format-tools="true"]{display:block!important}
+  }
+ `;
+ document.head.appendChild(style2);
+ // Collapse any expanded JSON tools on initial page load.
  document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
 })();
 
