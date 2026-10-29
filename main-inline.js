@@ -107,15 +107,24 @@ if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.bo
  document.head.appendChild(style);
  // Move the full Format → HTML Auto Fill panel into the tools drawer and hide it on entry.
  const findButton=text=>[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>(el.textContent||el.value||'').trim().toLowerCase()===text.toLowerCase());
- const parseBtn=findButton('Normal Parse');
- if(parseBtn){
-   let formatPanel=parseBtn;
-   for(let n=0;n<6&&formatPanel.parentElement;n++){
-     formatPanel=formatPanel.parentElement;
-     if(formatPanel.querySelectorAll('textarea').length>=1 &&
-        [...formatPanel.querySelectorAll('button,input[type="button"]')].some(b=>(b.textContent||b.value||'').trim()==='Apply to HTML')) break;
-   }
-   if(formatPanel && !actions.contains(formatPanel)){
+ // Find the complete format form from its distinctive textarea and both action buttons.
+ const formatTextarea=[...document.querySelectorAll('textarea')].find(el=>/বাংলা\s*\/\s*ইংরেজি\s*ফরম্যাট/.test(el.placeholder||'') || /ফরম্যাট এখানে পেস্ট/.test(el.placeholder||''));
+ const parseBtn=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>/normal\s*parse/i.test((el.textContent||el.value||'').trim()));
+ const applyBtn=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')].find(el=>/apply\s*to\s*html/i.test((el.textContent||el.value||'').trim()));
+ if(formatTextarea && parseBtn && applyBtn){
+   let formatPanel=formatTextarea.parentElement;
+   while(formatPanel && formatPanel!==document.body &&
+     !(formatPanel.contains(parseBtn) && formatPanel.contains(applyBtn))) formatPanel=formatPanel.parentElement;
+   // Choose the smallest ancestor that contains the paste box and both buttons.
+   if(formatPanel && formatPanel!==document.body){
+     let smaller=formatPanel;
+     while(smaller.parentElement && smaller.parentElement!==document.body &&
+       smaller.parentElement.contains(parseBtn) && smaller.parentElement.contains(applyBtn) &&
+       smaller.parentElement.contains(formatTextarea) &&
+       smaller.parentElement.querySelectorAll('textarea').length<=formatPanel.querySelectorAll('textarea').length){
+       // Keep the current smallest candidate; do not climb into the page shell.
+       break;
+     }
      formatPanel.dataset.movedFormatTools='true';
      actions.appendChild(formatPanel);
    }
