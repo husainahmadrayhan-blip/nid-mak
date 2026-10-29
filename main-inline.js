@@ -81,6 +81,35 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
 const toolsToggle=document.getElementById('toggleEditorTools');
 if(toolsToggle){toolsToggle.addEventListener('click',()=>{const open=document.body.classList.toggle('tools-open');toolsToggle.setAttribute('aria-expanded',String(open));toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';});}
 
+/* Main workspace cleanup: keep only the compact tools menu visible above the canvas.
+   All toolbar/status/format controls remain reachable inside the tools drawer. */
+(function(){
+ const style=document.createElement('style');
+ style.id='mobile-main-ui-cleanup';
+ style.textContent=`
+ @media(max-width:800px){
+   header{display:flex!important;flex-wrap:wrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
+   header>*{display:none!important}
+   header #toggleEditorTools{display:block!important;width:100%!important;max-width:none!important;margin:0!important}
+   header #toggleEditorTools button{width:100%!important}
+   main>aside{display:none!important;width:100%!important;max-width:100%!important;margin:0!important}
+   body.tools-open main>aside{display:block!important}
+   #allEditorTools{display:block!important;margin:0!important;width:100%!important;max-width:100%!important}
+   #allEditorActions{max-height:70vh!important;overflow:auto!important}
+   #status{display:none!important}
+   #stage-holder,#stage{max-width:100%!important}
+   body{overflow-x:hidden!important}
+ }
+ @media(min-width:801px){
+   header>*{display:revert}
+ }
+ `;
+ document.head.appendChild(style);
+ // If the format textarea panel was left expanded by previous runs, collapse it.
+ document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
+})();
+
+
 
 
 
