@@ -82,13 +82,45 @@ ui.innerHTML=`
 #pdf-addon .app-pdf-row label{font-size:15px}
 #pdf-addon .app-pdf-upload input[type=file]{min-height:48px;border-radius:12px}
 @media(max-width:760px){#pdf-addon .app-grid,#pdf-addon .app-media-grid{grid-template-columns:1fr}}
+
+/* Screenshot-accurate compact Bengali mobile form */
+#pdf-addon{padding:10px;background:#eef8ff;border:0;border-radius:0;margin:0 0 10px;font-family:system-ui,"Noto Sans Bengali",Arial,sans-serif}
+#pdf-addon .app-head{display:none}
+#pdf-addon .app-top-uploads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 12px}
+#pdf-addon .app-upload-tile{padding:0;border:0;background:transparent;box-shadow:none;gap:6px}
+#pdf-addon .app-upload-tile>label{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:38px;padding:7px 9px;border-radius:10px;background:linear-gradient(90deg,#d7edff,#e8f5ff);font-size:12px;color:#17385e}
+#pdf-addon .app-upload-tile>label .upload-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:#1477ef;color:white;font-size:16px}
+#pdf-addon .app-upload-tile>label small{width:100%;padding-left:31px;margin-top:-7px;font-size:9px;font-weight:400;color:#71839a}
+#pdf-addon .upload-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:91px;padding:8px 4px;border:1px dashed #a9d0eb;border-radius:10px;background:linear-gradient(145deg,#fff,#f4fbff);text-align:center;color:#233d5d;overflow:hidden}
+#pdf-addon .upload-cloud{display:flex;align-items:center;justify-content:center;width:40px;height:29px;border-radius:18px;background:#0879ed;color:white;font-size:23px;font-weight:700;line-height:1}
+#pdf-addon .upload-drop b{font-size:11px}
+#pdf-addon .upload-drop small{font-size:9px;color:#8a9aab}
+#pdf-addon .upload-drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}
+#pdf-addon .upload-drop select{position:relative;z-index:3;max-width:95%;font-size:10px;padding:2px;margin-top:3px}
+#pdf-addon .app-section{padding:9px 10px;margin:7px 0;border-radius:13px;background:#fff;border:1px solid #e0f0fb;box-shadow:0 2px 10px rgba(30,113,171,.06)}
+#pdf-addon .app-section h4{display:flex;align-items:center;gap:8px;padding:7px 9px;margin:0 0 7px;border-radius:8px;background:linear-gradient(90deg,#d9efff,#e7f6ff);font-size:13px;font-weight:700;color:#183b65}
+#pdf-addon .app-section h4 span{font-size:16px;color:#1673e8}
+#pdf-addon .app-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px}
+#pdf-addon .app-field{gap:3px;font-size:11px;font-weight:500;color:#34485f}
+#pdf-addon .app-field input,#pdf-addon .app-field select{min-height:29px;height:29px;padding:4px 8px;border:1px solid #d1dce6;border-radius:7px;background:#fff;font-size:12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.025)}
+#pdf-addon .app-field textarea{min-height:73px;padding:7px 9px;border-radius:7px;font-size:11px}
+#pdf-addon .app-download-card{min-height:42px;margin:8px 0 0;border-radius:8px;font-size:14px}
+#pdf-addon .app-download-card span{font-size:21px}
+#pdf-addon .app-status{font-size:10px;margin:5px 0}
+#pdf-addon .app-pdf-upload{margin-top:8px}
+@media(max-width:520px){#pdf-addon{padding:7px}#pdf-addon .app-top-uploads{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#pdf-addon .app-section{padding:8px;margin:6px 0}#pdf-addon .app-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}#pdf-addon .app-field input,#pdf-addon .app-field select{font-size:11px;padding:4px 6px}#pdf-addon .app-field textarea{min-height:68px}}
 </style>
-<div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">PDF থেকে তথ্য নিন, ফর্ম যাচাই করুন, তারপর HTML Preview-তে দেখুন</div></div></div><div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div><div class="app-actions app-main-actions" hidden aria-hidden="true" style="display:none"><button id="addon-map" type="button" class="secondary">Detect Fields</button><button id="addon-fill" type="button">HTML Auto Fill</button></div>
-<div class="app-section"><h4>ছবি ও স্বাক্ষর</h4><div class="app-media-grid"><div class="app-upload"><label>Photo</label><input id="addon-photo-file" type="file" accept="image/*"><small>JPG, PNG · ছবির জন্য</small></div><div class="app-upload"><label>Signature / Fingerprint</label><input id="addon-sign-file" type="file" accept="image/*"><select id="addon-sign-type"><option value="signature">Signature</option><option value="fingerprint">Fingerprint</option></select></div></div></div>
-<div class="app-section"><h4>Basic Information</h4><div class="app-grid" id="addon-basic-fields"></div></div>
-<div class="app-section"><h4>Personal Information</h4><div class="app-grid" id="addon-personal-fields"></div></div>
-<div class="app-section"><h4>Family Information</h4><div class="app-grid" id="addon-family-fields"></div></div>
-<div class="app-section"><h4>Address Information</h4><div class="app-grid" id="addon-address-fields"></div></div>
+<div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">তথ্য পূরণ করুন অথবা PDF আপলোড করুন</div></div></div>
+<div class="app-media-grid app-top-uploads">
+ <div class="app-upload app-upload-tile"><label for="addon-photo-file"><span class="upload-icon">▣</span><span>ফটো আপলোড</span><small>আপনার ছবি এখানে আপলোড করুন</small></label><div class="upload-drop"><span class="upload-cloud">↑</span><b>এখানে ফাইল আপলোড করুন</b><small>অথবা ফাইল নির্বাচন করুন</small><small>JPG, PNG (সর্বোচ্চ 2 MB)</small><input id="addon-photo-file" type="file" accept="image/*" aria-label="ফটো আপলোড"></div></div>
+ <div class="app-upload app-upload-tile"><label for="addon-sign-file"><span class="upload-icon">▤</span><span>আইডি স্বাক্ষর</span><small>আইডি স্বাক্ষর আপলোড করুন</small></label><div class="upload-drop"><span class="upload-cloud">↑</span><b>এখানে ফাইল আপলোড করুন</b><small>অথবা ফাইল নির্বাচন করুন</small><small>JPG, PNG (সর্বোচ্চ 2 MB)</small><input id="addon-sign-file" type="file" accept="image/*" aria-label="আইডি স্বাক্ষর"><select id="addon-sign-type"><option value="signature">Signature</option><option value="fingerprint">Fingerprint</option></select></div></div>
+</div>
+<div class="app-section"><h4><span>▣</span> আইডি তথ্য</h4><div class="app-grid" id="addon-basic-fields"></div></div>
+<div class="app-section"><h4><span>♟</span> ব্যক্তিগত তথ্য</h4><div class="app-grid" id="addon-personal-fields"></div></div>
+<div class="app-section"><h4><span>♟♟</span> পারিবারিক তথ্য</h4><div class="app-grid" id="addon-family-fields"></div></div>
+<div class="app-section"><h4><span>⌂</span> ঠিকানা</h4><div class="app-grid" id="addon-address-fields"></div></div>
+<div class="app-actions app-main-actions" hidden aria-hidden="true" style="display:none"><button id="addon-map" type="button" class="secondary">Detect Fields</button><button id="addon-fill" type="button">HTML Auto Fill</button></div>
+<div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div>
 <button id="addon-download-card" class="app-download-card" type="button"><span aria-hidden="true">⇩</span> ডাউনলোড কার্ড</button>
 <div class="app-status" id="addon-msg" role="status">PDF নির্বাচন করুন, তথ্য যাচাই করুন, তারপর ডাউনলোড কার্ড চাপুন।</div>
 <div class="app-footer"><button id="addon-fill-bottom" type="button">HTML Preview-তে দেখুন</button><button id="addon-tools-jump" type="button" class="secondary">PDF / JSON Tools খুলুন</button></div>
@@ -135,17 +167,17 @@ function renderForm(data){
  // never add/remove visible controls, so the form cannot jump when a PDF is loaded.
  const source=(data&&typeof data==='object')?data:{};
  const fields=[
-  ['documentNumber','basic','NID Number','text',['documentNumber','nidNumber','idNumber']],
-  ['pinNumber','basic','PIN Number','text',['pinNumber','pin','pinCode']],
-  ['nameBn','personal','Name (Bangla)','text',['nameBn','banglaName','name']],
-  ['nameEn','personal','Name (English)','text',['nameEn','englishName']],
-  ['birthDate','personal','Date of Birth','text',['birthDate','dob','dateOfBirth']],
-  ['birthPlace','personal','Birth Place','text',['birthPlace','placeOfBirth']],
-  ['fatherNameBn','family','Father’s Name','text',['fatherNameBn','fatherName','father']],
-  ['motherNameBn','family','Mother’s Name','text',['motherNameBn','motherName','mother']],
-  ['bloodGroup','family','Blood Group','select',['bloodGroup']],
-  ['issueDate','family','Issue Date','text',['issueDate']],
-  ['address','address','Address','textarea',['address','permanentAddress','presentAddress']]
+  ['documentNumber','basic','আইডি নাম্বার','text',['documentNumber','nidNumber','idNumber']],
+  ['pinNumber','basic','পিন নাম্বার','text',['pinNumber','pin','pinCode']],
+  ['nameBn','personal','নাম (বাংলা)','text',['nameBn','banglaName','name']],
+  ['nameEn','personal','নাম (ইংরেজি)','text',['nameEn','englishName']],
+  ['birthDate','personal','জন্ম তারিখ','date',['birthDate','dob','dateOfBirth']],
+  ['birthPlace','personal','জন্মস্থান','text',['birthPlace','placeOfBirth']],
+  ['fatherNameBn','family','পিতার নাম','text',['fatherNameBn','fatherName','father']],
+  ['motherNameBn','family','মাতার নাম','text',['motherNameBn','motherName','mother']],
+  ['bloodGroup','family','রক্তের গ্রুপ','select',['bloodGroup']],
+  ['issueDate','family','ইস্যু তারিখ','date',['issueDate']],
+  ['address','address','ঠিকানা','textarea',['address','permanentAddress','presentAddress']]
  ];
  const normalized=k=>String(k||'').toLowerCase().replace(/[\s_.-]/g,'');
  for(const [key,group,label,type,aliases] of fields){
@@ -156,7 +188,7 @@ function renderForm(data){
   let input;
   if(type==='textarea'){input=document.createElement('textarea');}
   else if(type==='select'){input=document.createElement('select');['','A+','A-','B+','B-','O+','O-','AB+','AB-'].forEach(v=>input.add(new Option(v||'Select',v)));}
-  else {input=document.createElement('input');input.type='text';}
+  else {input=document.createElement('input');input.type=type==='date'?'date':'text';}
   input.value=String(value??'');input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
   input.addEventListener('input',()=>{try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,input.value);by('addon-json').value=JSON.stringify(raw,null,2)}catch{}});
   wrap.append(caption,input);groups[group].append(wrap);
