@@ -70,6 +70,18 @@ ui.innerHTML=`
 #pdf-addon .app-footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 #pdf-addon .app-footer button{flex:1 1 170px}
 @media(max-width:760px){#pdf-addon{padding:11px;border-radius:0;margin-bottom:10px}#pdf-addon .app-grid,#pdf-addon .app-media-grid{grid-template-columns:1fr}#pdf-addon .app-head h3{font-size:17px}#pdf-addon .app-section{padding:11px}#pdf-addon .app-actions{width:100%}#pdf-addon .app-actions button{flex:1 1 130px}#pdf-addon .app-footer button{flex:1 1 100%}}
+/* Final screenshot-matched overrides (placed last to win over legacy rules). */
+#pdf-addon .app-section{background:#fff;border:1px solid #d9eaf6;border-radius:18px;padding:14px 16px;margin:12px 0;box-shadow:0 4px 16px rgba(35,105,160,.07)}
+#pdf-addon .app-section h4{display:block;background:linear-gradient(90deg,#d9efff,#e8f6ff);border:0;border-radius:10px;padding:10px 13px;margin:0 0 14px;color:#12345b;font-size:17px;font-weight:700}
+#pdf-addon .app-field{font-size:14px;font-weight:500;color:#26384d}
+#pdf-addon .app-field input,#pdf-addon .app-field textarea,#pdf-addon .app-field select{border:1px solid #cbd7e2;border-radius:12px;min-height:48px;font-size:15px;padding:11px 13px}
+#pdf-addon .app-field textarea{min-height:104px}
+#pdf-addon .app-download-card{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:58px;margin:12px 0 0;border:0;border-radius:12px;background:linear-gradient(100deg,#1264ef,#129bea);color:#fff;font-size:20px;font-weight:700;box-shadow:0 5px 14px rgba(22,105,231,.22)}
+#pdf-addon .app-download-card span{font-size:30px;line-height:1}
+#pdf-addon .app-pdf-row{grid-template-columns:1fr}
+#pdf-addon .app-pdf-row label{font-size:15px}
+#pdf-addon .app-pdf-upload input[type=file]{min-height:48px;border-radius:12px}
+@media(max-width:760px){#pdf-addon .app-grid,#pdf-addon .app-media-grid{grid-template-columns:1fr}}
 </style>
 <div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">PDF থেকে তথ্য নিন, ফর্ম যাচাই করুন, তারপর HTML Preview-তে দেখুন</div></div></div><div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div><div class="app-actions app-main-actions" hidden aria-hidden="true" style="display:none"><button id="addon-map" type="button" class="secondary">Detect Fields</button><button id="addon-fill" type="button">HTML Auto Fill</button></div>
 <div class="app-section"><h4>ছবি ও স্বাক্ষর</h4><div class="app-media-grid"><div class="app-upload"><label>Photo</label><input id="addon-photo-file" type="file" accept="image/*"><small>JPG, PNG · ছবির জন্য</small></div><div class="app-upload"><label>Signature / Fingerprint</label><input id="addon-sign-file" type="file" accept="image/*"><select id="addon-sign-type"><option value="signature">Signature</option><option value="fingerprint">Fingerprint</option></select></div></div></div>
