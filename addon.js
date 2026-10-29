@@ -24,7 +24,19 @@ ui.innerHTML=`
 
 #pdf-addon button{background:#2454b4;color:#fff;border:1px solid #1f4da7;border-radius:7px;padding:10px 14px;min-height:40px;font-weight:600;cursor:pointer}
 #pdf-addon button.secondary{background:#fff;color:#214b91;border-color:#c7d9e8}
-#pdf-addon .app-section{background:#fff;border:1px solid #d9e5ee;border-radius:10px;padding:14px;margin:12px 0}
+#pdf-addon .app-section{background:#fff;border:1px solid #d9e5ee;border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 3px 14px rgba(28,83,135,.06)}
+#pdf-addon .app-section h4{background:linear-gradient(90deg,#dcefff,#eaf6ff);border:0;border-radius:9px;padding:10px 12px;margin:-2px 0 14px;font-size:17px}
+#pdf-addon .app-field{font-size:14px;font-weight:500;color:#26384d}
+#pdf-addon .app-field input,#pdf-addon .app-field textarea,#pdf-addon .app-field select{border-radius:12px;min-height:48px;font-size:15px;padding:11px 13px}
+#pdf-addon .app-field textarea{min-height:104px}
+#pdf-addon .app-download-card{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:58px;margin:12px 0 0;border:0;border-radius:12px;background:linear-gradient(100deg,#1264ef,#129bea);color:#fff;font-size:20px;font-weight:700;box-shadow:0 5px 14px rgba(22,105,231,.22)}
+#pdf-addon .app-download-card span{font-size:30px;line-height:1}
+#pdf-addon .app-pdf-row{grid-template-columns:1fr}
+#pdf-addon .app-pdf-row label{font-size:15px}
+#pdf-addon .app-pdf-upload input[type=file]{min-height:48px;border-radius:12px}
+@media(min-width:761px){#pdf-addon .app-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}}
+@media(max-width:760px){#pdf-addon .app-grid,#pdf-addon .app-media-grid{grid-template-columns:1fr}}
+
 #pdf-addon .app-section h4{font-size:14px;color:#17345b;margin:0 0 14px;padding-bottom:9px;border-bottom:1px solid #dce7f0}
 #pdf-addon .app-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 16px}
 #pdf-addon .app-field{display:flex;flex-direction:column;gap:6px;min-width:0;color:#304a66;font-size:12px;font-weight:600}
@@ -65,7 +77,8 @@ ui.innerHTML=`
 <div class="app-section"><h4>Personal Information</h4><div class="app-grid" id="addon-personal-fields"></div></div>
 <div class="app-section"><h4>Family Information</h4><div class="app-grid" id="addon-family-fields"></div></div>
 <div class="app-section"><h4>Address Information</h4><div class="app-grid" id="addon-address-fields"></div></div>
-<div class="app-status" id="addon-msg" role="status">PDF নির্বাচন করে Extract করুন, অথবা JSON Tools খুলে JSON পেস্ট করুন।</div>
+<button id="addon-download-card" class="app-download-card" type="button"><span aria-hidden="true">⇩</span> ডাউনলোড কার্ড</button>
+<div class="app-status" id="addon-msg" role="status">PDF নির্বাচন করুন, তথ্য যাচাই করুন, তারপর ডাউনলোড কার্ড চাপুন।</div>
 <div class="app-footer"><button id="addon-fill-bottom" type="button">HTML Preview-তে দেখুন</button><button id="addon-tools-jump" type="button" class="secondary">PDF / JSON Tools খুলুন</button></div>
 <details id="addon-advanced"><summary>PDF / JSON Tools এবং Field Mapping</summary>
 <textarea id="addon-json" rows="8" spellcheck="false" placeholder="Extracted JSON বা নিজের JSON পেস্ট করুন"></textarea>
@@ -106,21 +119,35 @@ const permanentFieldDefaults={
 function renderForm(data){
  const groups={basic:by('addon-basic-fields'),personal:by('addon-personal-fields'),family:by('addon-family-fields'),address:by('addon-address-fields')};
  Object.values(groups).forEach(el=>el.replaceChildren());
- // Keep the existing extracted-data form permanent. Always render every known field,
- // then merge in additional keys discovered by the PDF/JSON extractor.
+ // Fixed screenshot-matched field layout: extracted extra keys stay in JSON but
+ // never add/remove visible controls, so the form cannot jump when a PDF is loaded.
  const source=(data&&typeof data==='object')?data:{};
- const merged={...permanentFieldDefaults,...source};
- const keys=Object.keys(merged).filter(k=>!/^data:image\//i.test(String(merged[k]))&& !/^(userIMG|photoIMG|photo|signIMG|fingerIMG|fingerprintIMG)$/i.test(k.split('.').pop()));
- for(const key of keys){
-  const group=groups[formGroup(key)]||groups.personal;
+ const fields=[
+  ['documentNumber','basic','NID Number','text',['documentNumber','nidNumber','idNumber']],
+  ['pinNumber','basic','PIN Number','text',['pinNumber','pin','pinCode']],
+  ['nameBn','personal','Name (Bangla)','text',['nameBn','banglaName','name']],
+  ['nameEn','personal','Name (English)','text',['nameEn','englishName']],
+  ['birthDate','personal','Date of Birth','text',['birthDate','dob','dateOfBirth']],
+  ['birthPlace','personal','Birth Place','text',['birthPlace','placeOfBirth']],
+  ['fatherNameBn','family','Father’s Name','text',['fatherNameBn','fatherName','father']],
+  ['motherNameBn','family','Mother’s Name','text',['motherNameBn','motherName','mother']],
+  ['bloodGroup','family','Blood Group','select',['bloodGroup']],
+  ['issueDate','family','Issue Date','text',['issueDate']],
+  ['address','address','Address','textarea',['address','permanentAddress','presentAddress']]
+ ];
+ const normalized=k=>String(k||'').toLowerCase().replace(/[\s_.-]/g,'');
+ for(const [key,group,label,type,aliases] of fields){
+  const found=Object.keys(source).find(k=>aliases.some(a=>normalized(a)===normalized(k)));
+  const value=found!==undefined?source[found]:(permanentFieldDefaults[key]||'');
   const wrap=document.createElement('label');wrap.className='app-field';wrap.title=key;
-  const label=document.createElement('span');label.textContent=displayLabel(key);
+  const caption=document.createElement('span');caption.textContent=label;
   let input;
-  const k=String(key).split('.').pop();
-  if(/address/i.test(k)||/ঠিকানা/.test(k)){input=document.createElement('textarea')}else{input=document.createElement('input');if(/date|dob/i.test(k))input.type='text'}
-  input.value=String(merged[key]??'');input.dataset.jsonKey=key;input.autocomplete='off';
-  input.addEventListener('input',()=>{try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,key,input.value);by('addon-json').value=JSON.stringify(raw,null,2)}catch{}});
-  wrap.append(label,input);group.append(wrap);
+  if(type==='textarea'){input=document.createElement('textarea');}
+  else if(type==='select'){input=document.createElement('select');['','A+','A-','B+','B-','O+','O-','AB+','AB-'].forEach(v=>input.add(new Option(v||'Select',v)));}
+  else {input=document.createElement('input');input.type='text';}
+  input.value=String(value??'');input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
+  input.addEventListener('input',()=>{try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,input.value);by('addon-json').value=JSON.stringify(raw,null,2)}catch{}});
+  wrap.append(caption,input);groups[group].append(wrap);
  }
 }
 async function imageToDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file)})}
@@ -659,6 +686,7 @@ by('addon-download-photo').onclick=()=>downloadExtractedImage(['userIMG','photoI
 by('addon-download-mark').onclick=()=>downloadExtractedImage(['fingerIMG','fingerprintIMG','signIMG'],'extracted-signature-or-fingerprint.png');
 by('addon-json-parse').onclick=()=>{try{const data=getData();updateInlineAssetPreview(JSON.parse(by('addon-json').value||'{}'));renderForm(data);detect();msg('JSON থেকে ফর্ম পূরণ হয়েছে। তথ্য যাচাই করে HTML Auto Fill চাপুন।')}catch(e){msg('JSON error: '+e.message)}};
 by('addon-fill-bottom').onclick=()=>by('addon-fill').click();
+by('addon-download-card').onclick=()=>{const printButton=document.getElementById('printPdf');if(printButton)printButton.click();else msg('Print বাটন পাওয়া যায়নি। মূল editor toolbar দেখুন।')};
 by('addon-tools-jump').onclick=()=>{const d=by('addon-advanced');d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})};
 by('addon-photo-file').addEventListener('change',async e=>{try{await setMediaFromFile(e.target.files[0],'photo');updateInlinePreviewFromEditor()}catch(err){msg('Photo error: '+err.message)}});
 by('addon-sign-file').addEventListener('change',async e=>{try{const role=by('addon-sign-type').value;await setMediaFromFile(e.target.files[0],role);if(role==='signature'){const removed=await removeExtractedSignatureBackground({silent:true});msg(removed?'Signature upload সম্পন্ন। Background স্বয়ংক্রিয়ভাবে সরানো হয়েছে।':'Signature upload হয়েছে, কিন্তু Background Removal সম্পন্ন হয়নি।')}updateInlinePreviewFromEditor()}catch(err){msg('Image error: '+err.message)}});
