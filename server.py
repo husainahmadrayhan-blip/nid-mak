@@ -74,7 +74,11 @@ class Handler(SimpleHTTPRequestHandler):
       const popup = nativeOpen.apply(window, arguments);
       window.open = nativeOpen;
       if (!popup) return popup;
-      popup.print = async function(){
+      // Window.print can be a protected/read-only property in Chromium.
+      // Proxy the popup so only the print() call is intercepted reliably.
+      return new Proxy(popup, {
+        get(target, property){
+          if (property === 'print') return async function(){
         try {
           const html = '<!doctype html>' + popup.document.documentElement.outerHTML;
           const response = await fetch('/api/pdf/create', {
@@ -98,9 +102,11 @@ class Handler(SimpleHTTPRequestHandler):
         } catch (error) {
           try { popup.close(); } catch (_) {}
           alert('PDF তৈরি করা যায়নি: ' + error.message);
+          };
+          const value = Reflect.get(target, property, target);
+          return typeof value === 'function' ? value.bind(target) : value;
         }
-      };
-      return popup;
+      });
     };
     setTimeout(function(){ window.open = nativeOpen; }, 0);
   }, true);
