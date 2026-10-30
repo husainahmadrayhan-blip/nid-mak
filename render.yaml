@@ -10,3 +10,21 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: PDF_SERVICE_URL
+        sync: false
+      - key: PDF_SERVICE_TOKEN
+        sync: false
+
+  - type: web
+    name: nid-mak-pdf-renderer
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile.pdf
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PDF_SERVICE_TOKEN
+        sync: false
