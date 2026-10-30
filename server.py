@@ -223,7 +223,10 @@ class Handler(SimpleHTTPRequestHandler):
                         browserless_ws, timeout=20000
                     )
                     try:
-                        context = browser.contexts[0] if browser.contexts else browser.new_context()
+                        # Use an isolated context so Browserless' shared default page/session
+                        # cannot be closed by another request. The captured HTML is already
+                        # rendered by the editor, so its scripts must not run a second time.
+                        context = browser.new_context(java_script_enabled=False)
                         page = context.new_page()
                         # Resolve relative image/font/CSS URLs from the editor origin.
                         base_tag = '<base href="' + origin + '/">'
