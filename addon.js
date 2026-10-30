@@ -157,7 +157,7 @@ if(editorToolsActions){
  }
 }
 // Keep advanced JSON/field-mapping controls in the editor sidebar instead of the main form.
-const toolsSidebar=document.querySelector('main>aside, #sidebar, .sidebar, [role="complementary"]');
+const toolsSidebar=document.getElementById('allEditorActions') || document.querySelector('main>aside, #sidebar, .sidebar, [role="complementary"]');
 const advancedTools=by('addon-advanced');
 if(toolsSidebar&&advancedTools){
  const toolGroup=document.createElement('section');
