@@ -942,17 +942,35 @@ async function createCurvedHandwritingSignature(){
   const isBangla=/[\\u0980-\\u09FF]/.test(name);
   // Load an actual Bengali display/handwritten-style font instead of relying on
   // whatever bold Bengali fallback happens to be installed on the device.
-  if(!document.getElementById('addon-galada-font')){
-   const link=document.createElement('link');
-   link.id='addon-galada-font';link.rel='stylesheet';
-   link.href='https://fonts.googleapis.com/css2?family=Galada&display=swap';
-   document.head.appendChild(link);
-  }
   if(isBangla){
-   try{await Promise.race([
-    document.fonts.load('400 46px "Galada"',name),
-    new Promise(resolve=>setTimeout(resolve,4500))
-   ]);}catch(e){console.warn('Galada font load failed; using Bengali fallback',e);}
+   try{
+    let link=document.getElementById('addon-galada-font');
+    if(!link){
+     link=document.createElement('link');
+     link.id='addon-galada-font';
+     link.rel='stylesheet';
+     link.href='https://fonts.googleapis.com/css2?family=Galada&display=swap';
+     link.crossOrigin='anonymous';
+     const loaded=new Promise((resolve,reject)=>{
+      link.onload=()=>resolve();
+      link.onerror=()=>reject(new Error('Galada stylesheet download failed'));
+     });
+     document.head.appendChild(link);
+     await loaded;
+    }else if(!link.sheet){
+     await new Promise((resolve,reject)=>{
+      link.addEventListener('load',resolve,{once:true});
+      link.addEventListener('error',()=>reject(new Error('Galada stylesheet failed')),{once:true});
+     });
+    }
+    await document.fonts.load('400 46px "Galada"',name);
+    if(!document.fonts.check('400 46px "Galada"',name)){
+     throw new Error('Galada font did not become available');
+    }
+   }catch(e){
+    console.error('Galada font could not be loaded; do not silently claim the selected font was applied.',e);
+    throw Error('বাংলা Signature Font (Galada) লোড হয়নি। ইন্টারনেট সংযোগ দিয়ে আবার চেষ্টা করুন।');
+   }
   }
   const fontFamily=isBangla
    ? '"Galada", "Noto Serif Bengali", "Siyam Rupali", serif'
