@@ -16,7 +16,7 @@ function render(){selected=null;drag=null;stage.replaceChildren();if(!doc)return
 let body=doc.body.cloneNode(true);body.querySelectorAll('script,iframe,object,embed').forEach(e=>e.remove());
 let sourceNodes=[...doc.body.querySelectorAll('*')],targetNodes=[...body.querySelectorAll('*')];body.setAttribute('data-editor-root','');stage.append(body);stage.style.width='auto';stage.style.height='auto';let sw=parseFloat(getComputedStyle(body).width),sh=parseFloat(getComputedStyle(body).height);const originalWidth=sw,originalHeight=sh;if(!Number.isFinite(sw)||sw<200||sw>10000)sw=800;if(!Number.isFinite(sh)||sh<100||sh>10000)sh=500;const bg=body.querySelector('img');if(bg){const iw=parseFloat(bg.getAttribute('width'))||0,ih=parseFloat(bg.getAttribute('height'))||0;if(iw>sw&&iw<=10000)sw=iw;if(ih>sh&&ih<=10000)sh=ih;}const sized=[...body.querySelectorAll('*')].filter(e=>e!==bg);for(const e of sized){const cs=getComputedStyle(e);const left=parseFloat(cs.left),top=parseFloat(cs.top),w=parseFloat(cs.width),h=parseFloat(cs.height);if(cs.position==='absolute'&&Number.isFinite(left)&&Number.isFinite(w))sw=Math.max(sw,left+w);if(cs.position==='absolute'&&Number.isFinite(top)&&Number.isFinite(h))sh=Math.max(sh,top+h);}sw=Math.min(10000,Math.ceil(sw));sh=Math.min(10000,Math.ceil(sh));stage.style.width=sw+'px';stage.style.height=sh+'px';body.style.width='100%';body.style.height='100%';body.style.margin='0';body.style.position='relative';body.style.overflow='hidden';body.querySelectorAll('[data-new-editor-text]').forEach(e=>{e.style.zIndex='9999';e.style.pointerEvents='auto'});
 let all=[body,...targetNodes];for(let el of all){for(let attr of ['src','poster'])if(el.hasAttribute(attr))el.setAttribute(attr,asset(currentHtml,el.getAttribute(attr)));if(el.hasAttribute('style'))el.style.backgroundImage=resolveCssUrls(el.style.backgroundImage,currentHtml)}
-let nodes=[...body.querySelectorAll('*')];nodes.forEach((el,i)=>{if(!['SCRIPT','STYLE','LINK','META','BR'].includes(el.tagName)&&!el.closest('[data-editor-ignore]')){el.dataset.editorIndex=i;el.addEventListener('pointerdown',e=>startDrag(e,el));}});body.addEventListener('pointerdown',e=>{if(e.target===body)select(body)});status(missingAssets.size?'Missing background/assets: '+[...missingAssets].slice(0,3).join(', '):'Loaded — '+nodes.length+' elements');requestAnimationFrame(()=>{if(autoFit)fitScreen();else applyZoom();});body.querySelectorAll('img').forEach(img=>{if(!img.complete)img.addEventListener('load',()=>{if(autoFit)fitScreen()},{once:true})});}
+let nodes=[...body.querySelectorAll('*')];nodes.forEach((el,i)=>{if(!['SCRIPT','STYLE','LINK','META','BR'].includes(el.tagName)&&!el.closest('[data-editor-ignore]')){el.dataset.editorIndex=i;el.addEventListener('pointerdown',e=>startDrag(e,el));}});body.addEventListener('pointerdown',e=>{if(e.target===body)select(body)});status(missingAssets.size?'Missing background/assets: '+[...missingAssets].slice(0,3).join(', '):'Loaded — '+nodes.length+' elements');requestAnimationFrame(()=>{if(autoFit)fitScreen();else applyZoom();});body.querySelectorAll('img').forEach(img=>{if(!img.complete)img.addEventListener('load',()=>{if(autoFit)fitScreen()},{once:true})});if(typeof window.relocateRenderedFormatPanel==='function')window.relocateRenderedFormatPanel();}
 function sourceFor(el){if(!el)return null;if(el===stage.firstElementChild)return doc.body;if(el===stage.querySelector('[data-editor-root]'))return doc.body;let idx=el.dataset.editorIndex;if(idx===undefined)return null;return doc.body.querySelectorAll('*')[Number(idx)]||null}
 function select(el){stage.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));selected=el;el.classList.add('selected');$('chosen').textContent=el.tagName+' '+(el.textContent||'').trim().slice(0,50);$('textedit').value=el.children.length===0?(el.textContent||''):'';$('textedit').disabled=el.children.length>0;const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect(),z=Number($('zoom').value)/100;$('x').value=Math.round((r.left-s.left)/z);$('y').value=Math.round((r.top-s.top)/z);$('font').value=parseFloat(getComputedStyle(el).fontSize)||16;const cs=getComputedStyle(el);$('weight').value=[...$('weight').options].some(o=>o.value===cs.fontWeight)?cs.fontWeight:'400';$('thickness').value=Number(cs.fontWeight)||400;$('thicknessvalue').textContent=$('thickness').value;$('stroke').value=Math.min(2,parseFloat(cs.webkitTextStrokeWidth)||0);$('strokevalue').textContent=$('stroke').value+'px';$('darkness').value=Math.round((Number.isFinite(parseFloat(cs.opacity))?parseFloat(cs.opacity):1)*100);$('darknessvalue').textContent=$('darkness').value+'%';$('color').value=toHex(cs.color);$('spacing').value=cs.letterSpacing==='normal'?0:(parseFloat(cs.letterSpacing)||0);$('family').value=[...$('family').options].some(o=>o.value===el.style.fontFamily)?el.style.fontFamily:'';$('width').value=Math.round(r.width/z);$('height').value=Math.round(r.height/z)}
 $('newtext').onclick=()=>{if(!doc){doc=new DOMParser().parseFromString('<!doctype html><html><head><meta charset="utf-8"></head><body style="width:800px;height:500px;background:white"></body></html>','text/html');currentHtml='index.html';fileMap.clear()}snap();const el=doc.createElement('div');el.setAttribute('data-new-editor-text','true');el.textContent='নতুন বাংলা লেখা';el.style.cssText='position:absolute;left:60px;top:60px;font-family:Arial, sans-serif;font-size:20px;font-weight:400;-webkit-text-stroke:0px transparent;text-shadow:none;opacity:1;color:#000000;white-space:pre-wrap;cursor:move';doc.body.append(el);render();const newIndex=[...doc.body.querySelectorAll('*')].indexOf(el);const newEl=stage.querySelector('[data-editor-index="'+newIndex+'"]');if(newEl)select(newEl);status('নতুন লেখা যোগ হয়েছে — ডান পাশের Selected Text-এ লিখুন')};$('textedit').addEventListener('input',()=>{if(!selected||selected.children.length)return;const src=sourceFor(selected);if(!src)return;snap();src.textContent=$('textedit').value;selected.textContent=$('textedit').value;});
@@ -58,115 +58,67 @@ $('files').onchange=async e=>{try{await load(e.target.files)}catch(err){status('
 
 $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='edited-html-project.zip';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),10000);status('Export complete')}catch(e){alert(e.message)}};
 
-// Create the Tools Drawer once. Existing controls are moved, not cloned,
-// so their event listeners and state remain attached.
-(function(){
- const header=document.querySelector('header');
- const aside=document.querySelector('main>aside');
- const toggle=document.getElementById('toggleEditorTools');
- if(!header||!aside||!toggle||document.getElementById('allEditorTools')) return;
- const panel=document.createElement('section');
- panel.id='allEditorTools';
- panel.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
- aside.insertBefore(panel,aside.firstChild);
- const actions=panel.querySelector('#allEditorActions');
- const keep=new Set(['printPdf','toggleEditorTools','status']);
- [...header.children].forEach(el=>{
-   if(el.tagName==='H2'||keep.has(el.id)||el.contains(toggle)) return;
-   actions.appendChild(el);
- });
- actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:8px';
- actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{
-   el.style.maxWidth='100%';
-   if(el.id==='projectName')el.style.width='100%';
- });
-})();
-
-/* Main workspace cleanup: move the real Format → HTML Auto Fill panel into the tools drawer.
-   The panel is relocated structurally, rather than guessed from a random parent or hidden with CSS. */
+// One persistent Tools Drawer for editor controls and project Format Auto Fill.
 (function(){
  const header=document.querySelector('header');
  const aside=document.querySelector('main>aside');
  const toggle=document.getElementById('toggleEditorTools');
  if(!header||!aside||!toggle) return;
 
- let panel=document.getElementById('allEditorTools');
- if(!panel){
-   panel=document.createElement('section');
-   panel.id='allEditorTools';
-   panel.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
-   aside.insertBefore(panel,aside.firstChild);
+ let drawer=document.getElementById('allEditorTools');
+ if(!drawer){
+   drawer=document.createElement('section');
+   drawer.id='allEditorTools';
+   drawer.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
+   aside.insertBefore(drawer,aside.firstChild);
  }
- const actions=panel.querySelector('#allEditorActions');
+ const actions=drawer.querySelector('#allEditorActions');
  if(!actions) return;
 
- // Move existing main toolbar controls into the drawer without cloning them,
- // so their original event handlers and state are preserved.
- const keep=new Set(['printPdf','toggleEditorTools','status']);
+ // Move real controls, not copies, so their existing listeners and state survive.
+ const keep=new Set(['toggleEditorTools','status']);
  [...header.children].forEach(el=>{
-   if(el.tagName==='H2'||keep.has(el.id)||el.contains(toggle)) return;
-   if(el.id==='allEditorTools'||el.contains(panel)) return;
+   if(keep.has(el.id)||el.contains(toggle)||el===drawer||el.contains(drawer)) return;
    actions.appendChild(el);
  });
- actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:8px';
- actions.querySelectorAll('button,.filebtn,select,input').forEach(el=>{
-   el.style.maxWidth='100%';
-   if(el.id==='projectName')el.style.width='100%';
- });
+ const title=header.querySelector('h1,h2,h3');
+ if(title&&!actions.contains(title)) actions.insertBefore(title,actions.firstChild);
+ const saveButton=[...document.querySelectorAll('button,[role="button"],.filebtn')].find(el=>
+   /save positions permanently|save positions/i.test((el.innerText||el.textContent||'').trim()));
+ if(saveButton&&!actions.contains(saveButton)) actions.appendChild(saveButton);
+ const saveStatus=[...document.querySelectorAll('div,p,span')].find(el=>
+   /fingerprint\/signature position/i.test((el.innerText||el.textContent||'').trim()) &&
+   el.children.length<3);
+ if(saveStatus&&!actions.contains(saveStatus)) actions.appendChild(saveStatus);
+ const print=document.getElementById('printPdf');
+ if(print&&!actions.contains(print)) actions.appendChild(print);
 
- // Identify the panel by its actual heading and the controls that belong to it.
- // Text is read from the full button, so nested spans/icons do not break matching.
  const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
  const label=el=>[el.innerText,el.textContent,el.value,el.getAttribute('aria-label'),el.title].filter(Boolean).join(' ');
- const controls=[...document.querySelectorAll('button,input[type="button"],input[type="submit"]')];
- const parseBtn=controls.find(el=>/normalparse/.test(norm(label(el))));
- const applyBtn=controls.find(el=>/applytohtml/.test(norm(label(el))));
- const headings=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,legend,summary,[role="heading"],label,div,section')];
- const formatHeading=headings.find(el=>{
-   const t=norm(label(el));
-   return /format.*html.*autofill/.test(t) && el.children.length<4;
- });
- let formatPanel=null;
- if(parseBtn&&applyBtn&&formatHeading){
-   // Start from the heading and climb only until the first container that owns
-   // the heading, paste textarea, Parse button and Apply button together.
-   let candidate=formatHeading;
-   while(candidate&&candidate!==document.body){
-     if(candidate.contains(parseBtn)&&candidate.contains(applyBtn)&&candidate.querySelector('textarea')){
-       formatPanel=candidate;
-       break;
-     }
-     candidate=candidate.parentElement;
+ function relocateRenderedFormatPanel(){
+   // The project is parsed into doc and cloned into #stage by render().
+   // Always move the rendered copy after render, leaving doc intact for save/export.
+   const source=stage.querySelector('#format-source');
+   const parse=stage.querySelector('#format-parse');
+   const apply=stage.querySelector('#format-apply');
+   if(!source||!parse||!apply) return false;
+   let panel=source;
+   while(panel&&panel!==stage){
+     if(panel.contains(parse)&&panel.contains(apply)&&panel.querySelector('textarea')) break;
+     panel=panel.parentElement;
    }
- }
- // Some projects label the paste area more explicitly than the heading.
- if(!formatPanel&&parseBtn&&applyBtn){
-   const paste=[...document.querySelectorAll('textarea')].find(el=>{
-     const t=norm([el.placeholder,el.getAttribute('aria-label'),el.id,el.name].filter(Boolean).join(' '));
-     return /format|paste/.test(t);
-   });
-   if(paste){
-     let candidate=paste;
-     while(candidate&&candidate!==document.body){
-       const t=norm(label(candidate));
-       if(candidate.contains(parseBtn)&&candidate.contains(applyBtn)&&/format/.test(t)){
-         formatPanel=candidate;
-         break;
-       }
-       candidate=candidate.parentElement;
-     }
+   if(!panel||panel===stage||panel===actions) return false;
+   if(!actions.contains(panel)){
+     panel.dataset.movedFormatTools='true';
+     actions.appendChild(panel);
    }
- }
- if(formatPanel&&formatPanel!==actions&&!actions.contains(formatPanel)){
-   formatPanel.dataset.movedFormatTools='true';
-   actions.appendChild(formatPanel);
+   return true;
  }
 
- const toolsToggle=toggle;
- toolsToggle.addEventListener('click',()=>{
+ toggle.addEventListener('click',()=>{
    const open=document.body.classList.toggle('tools-open');
-   toolsToggle.setAttribute('aria-expanded',String(open));
-   toolsToggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';
+   toggle.setAttribute('aria-expanded',String(open));
+   toggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';
  });
  const style=document.createElement('style');
  style.id='mobile-main-ui-cleanup';
@@ -183,16 +135,15 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
    #status{display:none!important}
    #stage-holder,#stage{max-width:100%!important}
    body{overflow-x:hidden!important}
-   body:not(.tools-open) [data-moved-format-tools="true"]{display:none!important}
-   body.tools-open [data-moved-format-tools="true"]{display:block!important}
  }
  @media(min-width:801px){
-   header>*{display:revert}
    #allEditorTools{max-width:100%}
  }
  `;
  document.head.appendChild(style);
  document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
+ window.relocateRenderedFormatPanel=relocateRenderedFormatPanel;
+ relocateRenderedFormatPanel();
 })();
 function collectStageStyles(){
  let css='';
