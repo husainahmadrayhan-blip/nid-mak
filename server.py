@@ -1,4 +1,4 @@
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid
@@ -170,10 +170,16 @@ class Handler(SimpleHTTPRequestHandler):
                 host = self.headers.get('Host', '127.0.0.1')
                 origin = forwarded_proto + '://' + host
                 with sync_playwright() as playwright:
-                    browser = playwright.chromium.launch(headless=True)
+                    browser = playwright.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-dev-shm-usage']
+                    )
                     try:
                         page = browser.new_page()
-                        page.goto(origin + '/health', wait_until='domcontentloaded', timeout=30000)
+                        # Resolve relative image/font/CSS URLs from the editor origin.
+                        base_tag = '<base href="' + origin + '/">'
+                        if re.search(r'<head[^>]*>', document_html, flags=re.I):
+                            document_html = re.sub(r'(<head[^>]*>)', r'\\1' + base_tag, document_html, count=1, flags=re.I)
                         page.set_content(document_html, wait_until='networkidle', timeout=90000)
                         page.evaluate("() => document.fonts ? document.fonts.ready : Promise.resolve()")
                         pdf_data = page.pdf(print_background=True, prefer_css_page_size=True)
@@ -318,18 +324,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Type','application/json; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers();self.wfile.write(body)
-# Keep the single-threaded server used by the existing local workflow.
-# Render requires binding to 0.0.0.0 and using the PORT environment variable.
+# Use a threaded server so Playwright can fetch same-origin images/fonts while
+# the PDF-generation request is being processed. Render binds to 0.0.0.0:$PORT.
 IS_RENDER = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
 if IS_RENDER:
     HOST = '0.0.0.0'
     PORT = int(os.environ.get('PORT', '10000'))
-    s = HTTPServer((HOST, PORT), Handler)
+    s = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f'Editor listening on {HOST}:{PORT}', flush=True)
     print('Health check: /health', flush=True)
     print('Projects directory (ephemeral on standard Render disks):', str(PROJECTS_DIR), flush=True)
 else:
-    s = HTTPServer(('127.0.0.1', 0), Handler)
+    s = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     url = f'http://127.0.0.1:{s.server_port}/'
     print('Editor:', url, flush=True)
     print('Permanent projects folder:', str(PROJECTS_DIR), flush=True)
