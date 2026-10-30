@@ -76,7 +76,7 @@ class Handler(SimpleHTTPRequestHandler):
                             wait_until='domcontentloaded',
                             timeout=10000
                         )
-                        pdf_data = page.pdf(print_background=True, timeout=15000)
+                        pdf_data = page.pdf(print_background=True)
                         if not pdf_data.startswith(b'%PDF-'):
                             raise RuntimeError('Remote Chromium returned invalid PDF bytes')
                         return json_reply(self, 200, {
@@ -249,8 +249,7 @@ class Handler(SimpleHTTPRequestHandler):
                             pass
                         pdf_data = page.pdf(
                             print_background=True,
-                            prefer_css_page_size=True,
-                            timeout=15000
+                            prefer_css_page_size=True
                         )
                         if not pdf_data.startswith(b'%PDF-'):
                             raise RuntimeError('Chromium did not return a valid PDF')
