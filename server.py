@@ -153,7 +153,8 @@ class Handler(SimpleHTTPRequestHandler):
               if (!result.ok || !result.url) throw new Error(result.error || 'PDF URL পাওয়া যায়নি');
               // A same-origin HTTP response with application/pdf reliably invokes
               // Chrome's built-in PDF viewer in the already-opened tab.
-              popup.location.replace(result.url);
+              const pdfUrl = new URL(result.url, window.location.origin).href;
+              popup.location.replace(pdfUrl);
             } catch (error) {
               try { popup.close(); } catch (_) {}
               alert('PDF তৈরি করা যায়নি: ' + error.message);
