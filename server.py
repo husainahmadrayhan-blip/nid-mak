@@ -62,6 +62,52 @@ class Handler(SimpleHTTPRequestHandler):
             link = '<link rel="stylesheet" href="/mobile-workspace-fix.css">'
             if link not in page:
                 page = page.replace('</head>', link + '\n</head>', 1)
+            # Intercept only the existing Print/PDF popup's print() call.
+            # The editor's original print layout and stage-cloning code remain untouched.
+            bridge = r'''<script>
+(function(){
+  document.addEventListener('click', function(event){
+    const button = event.target && event.target.closest ? event.target.closest('#printPdf') : null;
+    if (!button) return;
+    const nativeOpen = window.open;
+    window.open = function(){
+      const popup = nativeOpen.apply(window, arguments);
+      window.open = nativeOpen;
+      if (!popup) return popup;
+      popup.print = async function(){
+        try {
+          const html = '<!doctype html>' + popup.document.documentElement.outerHTML;
+          const response = await fetch('/api/pdf/create', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({html:html})
+          });
+          if (!response.ok) {
+            let message = 'PDF তৈরি করা যায়নি';
+            try { const data = await response.json(); message = data.error || message; } catch (_) {}
+            throw new Error(message);
+          }
+          const buffer = await response.arrayBuffer();
+          const sendPdf = function(messageEvent){
+            if (messageEvent.origin !== location.origin || messageEvent.data?.type !== 'PDF_VIEWER_READY') return;
+            window.removeEventListener('message', sendPdf);
+            messageEvent.source.postMessage({type:'PDF_VIEWER_LOAD',buffer:buffer}, location.origin, [buffer]);
+          };
+          window.addEventListener('message', sendPdf);
+          popup.location.href = '/pdf-viewer.html?source=editor';
+          setTimeout(function(){ window.removeEventListener('message', sendPdf); }, 30000);
+        } catch (error) {
+          try { popup.close(); } catch (_) {}
+          alert('PDF তৈরি করা যায়নি: ' + error.message);
+        }
+      };
+      return popup;
+    };
+    setTimeout(function(){ window.open = nativeOpen; }, 0);
+  }, true);
+})();
+</script>'''
+            if 'PDF_VIEWER_READY' not in page:
+                page = page.replace('</body>', bridge + '\n</body>', 1)
             body = page.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -87,6 +133,39 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/pdf/create':
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 100 * 1024 * 1024:
+                    raise ValueError('Print document must be between 1 byte and 100 MB')
+                payload = json.loads(self.rfile.read(size).decode('utf-8'))
+                document_html = payload.get('html')
+                if not isinstance(document_html, str) or '<html' not in document_html.lower():
+                    raise ValueError('Valid HTML print document is required')
+                from playwright.sync_api import sync_playwright
+                forwarded_proto = self.headers.get('X-Forwarded-Proto', 'http').split(',')[0].strip()
+                host = self.headers.get('Host', '127.0.0.1')
+                origin = forwarded_proto + '://' + host
+                with sync_playwright() as playwright:
+                    browser = playwright.chromium.launch(headless=True)
+                    try:
+                        page = browser.new_page()
+                        page.goto(origin + '/health', wait_until='domcontentloaded', timeout=30000)
+                        page.set_content(document_html, wait_until='networkidle', timeout=90000)
+                        page.evaluate("() => document.fonts ? document.fonts.ready : Promise.resolve()")
+                        pdf_data = page.pdf(print_background=True, prefer_css_page_size=True)
+                    finally:
+                        browser.close()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/pdf')
+                self.send_header('Content-Disposition', 'inline; filename="editor-preview.pdf"')
+                self.send_header('Content-Length', str(len(pdf_data)))
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                self.wfile.write(pdf_data)
+                return
+            except Exception as exc:
+                return json_reply(self, 500, {'ok': False, 'error': 'PDF তৈরি ব্যর্থ: ' + str(exc)})
         if parsed.path == '/api/projects/save':
             name = clean_project_name(parse_qs(parsed.query).get('name', [''])[0])
             try:
