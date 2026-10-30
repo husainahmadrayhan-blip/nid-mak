@@ -56,25 +56,32 @@ class Handler(SimpleHTTPRequestHandler):
             # Real runtime check: launch the installed Chromium binary and render
             # a tiny PDF. A plain /health response does not prove Chromium works.
             try:
+                browserless_ws = os.environ.get('BROWSERLESS_WS_ENDPOINT', '').strip()
+                if not browserless_ws:
+                    return json_reply(self, 503, {
+                        'ok': False,
+                        'chromium': 'not_configured',
+                        'error': 'Set BROWSERLESS_WS_ENDPOINT in Render environment variables'
+                    })
                 from playwright.sync_api import sync_playwright
                 with sync_playwright() as playwright:
-                    browser = playwright.chromium.launch(
-                        headless=True,
-                        args=['--no-sandbox', '--disable-dev-shm-usage']
+                    browser = playwright.chromium.connect_over_cdp(
+                        browserless_ws, timeout=20000
                     )
                     try:
-                        page = browser.new_page()
+                        context = browser.contexts[0] if browser.contexts else browser.new_context()
+                        page = context.new_page()
                         page.set_content(
-                            '<!doctype html><html><body><h1>Chromium PDF test</h1></body></html>',
+                            '<!doctype html><html><body><h1>Remote Chromium PDF test</h1></body></html>',
                             wait_until='domcontentloaded',
                             timeout=10000
                         )
-                        pdf_data = page.pdf(print_background=True, timeout=10000)
+                        pdf_data = page.pdf(print_background=True, timeout=15000)
                         if not pdf_data.startswith(b'%PDF-'):
-                            raise RuntimeError('Chromium returned invalid PDF bytes')
+                            raise RuntimeError('Remote Chromium returned invalid PDF bytes')
                         return json_reply(self, 200, {
                             'ok': True,
-                            'chromium': 'running',
+                            'chromium': 'remote_running',
                             'version': browser.version,
                             'pdf_generated': True,
                             'pdf_bytes': len(pdf_data)
@@ -200,17 +207,23 @@ class Handler(SimpleHTTPRequestHandler):
                 document_html = payload.get('html')
                 if not isinstance(document_html, str) or '<html' not in document_html.lower():
                     raise ValueError('Valid HTML print document is required')
+                browserless_ws = os.environ.get('BROWSERLESS_WS_ENDPOINT', '').strip()
+                if not browserless_ws:
+                    return json_reply(self, 503, {
+                        'ok': False,
+                        'error': 'Remote Chromium is not configured. Set BROWSERLESS_WS_ENDPOINT in Render.'
+                    })
                 from playwright.sync_api import sync_playwright
                 forwarded_proto = self.headers.get('X-Forwarded-Proto', 'http').split(',')[0].strip()
                 host = self.headers.get('Host', '127.0.0.1')
                 origin = forwarded_proto + '://' + host
                 with sync_playwright() as playwright:
-                    browser = playwright.chromium.launch(
-                        headless=True,
-                        args=['--no-sandbox', '--disable-dev-shm-usage']
+                    browser = playwright.chromium.connect_over_cdp(
+                        browserless_ws, timeout=20000
                     )
                     try:
-                        page = browser.new_page()
+                        context = browser.contexts[0] if browser.contexts else browser.new_context()
+                        page = context.new_page()
                         # Resolve relative image/font/CSS URLs from the editor origin.
                         base_tag = '<base href="' + origin + '/">'
                         if re.search(r'<head[^>]*>', document_html, flags=re.I):
