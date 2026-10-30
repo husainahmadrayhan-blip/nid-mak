@@ -197,15 +197,26 @@ function renderForm(data){
   ['pinNumber','basic','পিন নাম্বার','text',['pinNumber','pin','pinCode']],
   ['nameBn','personal','নাম (বাংলা)','text',['nameBn','banglaName','name']],
   ['nameEn','personal','নাম (ইংরেজি)','text',['nameEn','englishName']],
-  ['birthDate','personal','জন্ম তারিখ','date',['birthDate','dob','dateOfBirth']],
+  ['birthDate','personal','জন্ম তারিখ','date-text',['birthDate','dob','dateOfBirth']],
   ['birthPlace','personal','জন্মস্থান','text',['birthPlace','placeOfBirth']],
   ['fatherNameBn','family','পিতার নাম','text',['fatherNameBn','fatherName','father']],
   ['motherNameBn','family','মাতার নাম','text',['motherNameBn','motherName','mother']],
   ['bloodGroup','family','রক্তের গ্রুপ','select',['bloodGroup']],
-  ['issueDate','family','ইস্যু তারিখ','date',['issueDate']],
+  ['issueDate','family','ইস্যু তারিখ','date-text',['issueDate']],
   ['address','address','ঠিকানা','textarea',['address','permanentAddress','presentAddress']]
  ];
  const normalized=k=>String(k||'').toLowerCase().replace(/[\s_.-]/g,'');
+ const displayDate=value=>{
+  let v=String(value??'').trim().replace(/[০-৯]/g,ch=>'০১২৩৪৫৬৭৮৯'.indexOf(ch));
+  if(!v)return '';
+  let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m)return m[3].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[1];
+  m=v.match(/^(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{4})$/);
+  if(m)return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[3];
+  m=v.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
+  if(m){const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};const month=months[m[2].slice(0,3).toLowerCase()];if(month)return m[1].padStart(2,'0')+'/'+month+'/'+m[3];}
+  return v;
+ };
  for(const [key,group,label,type,aliases] of fields){
   const found=Object.keys(source).find(k=>aliases.some(a=>normalized(a)===normalized(k)));
   const value=found!==undefined?source[found]:(permanentFieldDefaults[key]||'');
@@ -214,9 +225,23 @@ function renderForm(data){
   let input;
   if(type==='textarea'){input=document.createElement('textarea');}
   else if(type==='select'){input=document.createElement('select');['','A+','A-','B+','B-','O+','O-','AB+','AB-'].forEach(v=>input.add(new Option(v||'Select',v)));}
-  else {input=document.createElement('input');input.type=type==='date'?'date':'text';}
-  input.value=String(value??'');input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
-  input.addEventListener('input',()=>{try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,input.value);by('addon-json').value=JSON.stringify(raw,null,2)}catch{}});
+  else {input=document.createElement('input');input.type='text';}
+  if(type==='date-text'){input.inputMode='numeric';input.placeholder='DD/MM/YYYY';input.autocapitalize='off';input.spellcheck=false;}
+  input.value=type==='date-text'?displayDate(value):String(value??'');
+  input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
+  input.addEventListener('input',()=>{
+   try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,input.value);by('addon-json').value=JSON.stringify(raw,null,2);}
+   catch(e){msg('Date/field update error: '+e.message);}
+  });
+  input.addEventListener('change',()=>{
+   try{
+    const raw=JSON.parse(by('addon-json').value||'{}');
+    setPath(raw,input.dataset.jsonKey,input.value);
+    by('addon-json').value=JSON.stringify(raw,null,2);
+    const fillButton=by('addon-fill');
+    if(fillButton&&doc)fillButton.click();
+   }catch(e){msg('HTML Auto Fill error: '+e.message);}
+  });
   wrap.append(caption,input);groups[group].append(wrap);
  }
 }
