@@ -30,6 +30,14 @@ let pdf=null,original=null,page=1,scale=1,rotation=0,fitMode='width',busy=false;
 const canvas=$('page'),ctx=canvas.getContext('2d');
 if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 function say(t){$('status').textContent=t}
+if(window.opener){
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.data?.type!=='PDF_VIEWER_LOAD'||!e.data.buffer)return;
+  const bytes=e.data.buffer;
+  openFile(new File([bytes],'editor-preview.pdf',{type:'application/pdf'}));
+ });
+ window.addEventListener('load',()=>{try{window.opener.postMessage({type:'PDF_VIEWER_READY'},location.origin)}catch(_){}});
+}
 async function openFile(file){
  try{
   if(!file||(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'))throw Error('Please choose a PDF file.');
