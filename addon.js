@@ -796,6 +796,17 @@ by('addon-photo-file').addEventListener('change',async e=>{try{await setMediaFro
 by('addon-sign-file').addEventListener('change',async e=>{try{const role=by('addon-sign-type').value;await setMediaFromFile(e.target.files[0],role);if(role==='signature'){const removed=await removeExtractedSignatureBackground({silent:true});msg(removed?'Signature upload সম্পন্ন। Background স্বয়ংক্রিয়ভাবে সরানো হয়েছে।':'Signature upload হয়েছে, কিন্তু Background Removal সম্পন্ন হয়নি।')}updateInlinePreviewFromEditor()}catch(err){msg('Image error: '+err.message)}});
 by('addon-sign-type').addEventListener('change',updateInlinePreviewFromEditor);
 
+// Shared Unicode-to-Kalpana ANSI conversion for the legacy signature generators.
+async function prepareKalpanaANSIName(name){
+ if(typeof window.loadKalpanaANSIFont!=='function'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL('./kalpana-font-embed.js',document.baseURI).href;s.onload=resolve;s.onerror=()=>reject(new Error('kalpana-font-embed.js পাওয়া যায়নি।'));document.head.appendChild(s);});}
+ if(typeof window.loadKalpanaANSIFont!=='function')throw Error('Kalpana font loader পাওয়া যায়নি।');
+ await window.loadKalpanaANSIFont();
+ const map={'অ':'A','আ':'Av','ই':'B','ঈ':'C','উ':'D','ঊ':'E','ঋ':'F','এ':'G','ঐ':'H','ও':'I','ঔ':'J','ক':'K','খ':'L','গ':'M','ঘ':'N','ঙ':'O','চ':'P','ছ':'Q','জ':'R','ঝ':'S','ঞ':'T','ট':'U','ঠ':'V','ড':'W','ঢ':'X','ণ':'Y','ত':'Z','থ':'_','দ':'\u0060','ধ':'a','ন':'b','প':'c','ফ':'d','ব':'e','ভ':'f','ম':'g','য':'h','র':'i','ল':'j','শ':'k','ষ':'l','স':'m','হ':'n','ড়':'o','ঢ়':'p','য়':'q','ৎ':'r','া':'v','ি':'w','ী':'x','ু':'y','ূ':'~','ৃ':'…','ে':'‡','ৈ':'‰','ৗ':'Š','ং':'s','ঃ':'t','ঁ':'u','্':'&','০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9','।':'|',' ':' '};
+ const cj={'ক্ষ':'¶','জ্ঞ':'Á','ত্র':'Î','ক্র':'µ','গ্র':'Mª','প্র':'cÖ','দ্ব':'Ø','ন্দ':'›\u0060','ন্ত':'šÍ','ন্ন':'bœ','ম্প':'¤ú','ম্ব':'¤^','ষ্ট':'ó','স্ক':'¯‹','স্ত':'¯—','স্প':'¯ú','হ্ন':'ý','হ্ম':'þ','ল্ল':'jø','ক্ক':'°','ক্ত':'³','ঙ্গ':'½','ঞ্জ':'Ä','চ্চ':'”P','চ্ছ':'”Q','জ্জ':'¾','ট্ট':'Æ','ণ্ড':'Ê','ত্ত':'Ë','দ্ধ':'×','প্ন':'cœ','প্ল':'c­'};
+ let x=name.replace(/([ক-হড়ঢ়য়ৎ](?:্[ক-হড়ঢ়য়ৎ])*)([েৈি])/g,'$2$1');for(const k of Object.keys(cj).sort((a,b)=>b.length-a.length))x=x.split(k).join(cj[k]);
+ let out='';for(const ch of x){if(Object.prototype.hasOwnProperty.call(map,ch))out+=map[ch];else if(/[A-Za-z0-9.,\-()]/.test(ch))out+=ch;else throw Error('এই বাংলা অক্ষরের Kalpana mapping এখনো যোগ করা হয়নি: '+ch);}return out;
+}
+
 // Create a polished transparent name mark. This is a typographic name mark,
 // not a reproduction of a person's handwritten/legal signature.
 async function createNameMarkFromInput(){
@@ -804,20 +815,12 @@ async function createNameMarkFromInput(){
   const name=String(by('addon-name-mark').value||'').trim().replace(/\s+/g,' ');
   if(!name) throw Error('আগে বাংলা বা English নাম লিখুন।');
   const isBangla=/[\u0980-\u09FF]/.test(name);
-  const canvas=document.createElement('canvas');
-  const measure=canvas.getContext('2d');
-  const fontSize=isBangla?14:18;
-  // Prefer installed Bengali typefaces with graceful fallbacks. A browser can only
-  // use fonts installed/loaded on that device, so do not depend on a remote font.
-  const fontFamily=isBangla
-   ? '"Siyam Rupali", "SolaimanLipi", "Noto Sans Bengali", "Noto Serif Bengali", "Nikosh", "Vrinda", serif'
-   : '"Segoe Script", "Brush Script MT", "URW Chancery L", "Comic Sans MS", cursive';
-  const fontWeight=isBangla?'500':'500';
-  const fontStyle='normal';
-  const font=`${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
-  measure.font=font;
-  const textWidth=Math.ceil(measure.measureText(name).width);
-  const padX=isBangla?8:12;
+   const renderName=isBangla?await prepareKalpanaANSIName(name):name;
+   const canvas=document.createElement('canvas'),measure=canvas.getContext('2d');
+   const fontSize=isBangla?14:18,fontFamily=isBangla?'"KalpanaANSI_Local"':'"Segoe Script", "Brush Script MT", "URW Chancery L", "Comic Sans MS", cursive';
+   const font=`normal 400 ${fontSize}px ${fontFamily}`;measure.font=font;
+   const textWidth=Math.ceil(measure.measureText(renderName).width);
+   const padX=isBangla?8:12;const padX=isBangla?8:12;
   const padY=5;
   const dpr=3;
   const logicalW=Math.max(180,Math.min(1500,textWidth+padX*2));
@@ -838,7 +841,7 @@ async function createNameMarkFromInput(){
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(isBangla?1.12:1.0,1);
-  ctx.fillText(name,0,0,logicalW-padX*2);
+  ctx.fillText(renderName,0,0,logicalW-padX*2);
   ctx.restore();
   // Tighten excess transparent margins to the rendered glyph bounds, with safe padding.
   const rawCanvas=document.createElement('canvas');
@@ -876,16 +879,13 @@ function createFlowingSignatureFromInput(){
   const name=String(by('addon-name-mark').value||'').trim().replace(/\s+/g,' ');
   if(!name) throw Error('আগে বাংলা বা English নাম লিখুন।');
   const isBangla=/[\u0980-\u09FF]/.test(name);
-  const fontFamily=isBangla
-   ? '"FreeSerif", "Siyam Rupali", "SolaimanLipi", "Noto Sans Bengali", "Nikosh", serif'
-   : '"Segoe Script", "Brush Script MT", "URW Chancery L", "Apple Chancery", cursive';
-  const fontSize=isBangla?24:31;
-  const weight=isBangla?'500':'400';
-  const font=`italic ${weight} ${fontSize}px ${fontFamily}`;
-  const measure=document.createElement('canvas').getContext('2d');
-  measure.font=font;
-  const textWidth=Math.ceil(measure.measureText(name).width);
-  const logicalW=Math.max(220,Math.min(1800,textWidth+100));
+   const renderName=isBangla?await prepareKalpanaANSIName(name):name;
+   const fontFamily=isBangla?'"KalpanaANSI_Local"':'"Segoe Script", "Brush Script MT", "URW Chancery L", "Apple Chancery", cursive';
+   const fontSize=isBangla?24:31;
+   const font=isBangla?`normal 400 ${fontSize}px ${fontFamily}`:`italic 400 ${fontSize}px ${fontFamily}`;
+   const measure=document.createElement('canvas').getContext('2d');measure.font=font;
+   const textWidth=Math.ceil(measure.measureText(renderName).width);
+   const logicalW=Math.max(220,Math.min(1800,textWidth+100));const logicalW=Math.max(220,Math.min(1800,textWidth+100));
   const logicalH=isBangla?66:76;
   const dpr=3;
   const canvas=document.createElement('canvas');
@@ -897,7 +897,7 @@ function createFlowingSignatureFromInput(){
   const cx=logicalW/2, cy=logicalH*0.49;
   // Keep the name on a level baseline. Only the decorative terminal strokes flow.
   ctx.save(); ctx.translate(cx,cy); ctx.scale(isBangla?1.04:1.0,1);
-  ctx.fillText(name,0,0,logicalW-70); ctx.restore();
+  ctx.fillText(renderName,0,0,logicalW-70); ctx.restore();
   // Elegant, restrained signature-style swashes around the name, not through the letters.
   const left=Math.max(8,(logicalW-textWidth)/2-20), right=Math.min(logicalW-8,(logicalW+textWidth)/2+20);
   ctx.lineWidth=isBangla?1.15:1.35;
@@ -968,14 +968,13 @@ async function createCurvedHandwritingSignature(){
     else throw Error('এই বাংলা অক্ষরের Kalpana mapping এখনো যোগ করা হয়নি: '+ch);
    }
   }
-  const fontSize=isBangla?46:48;
-  const font='400 '+fontSize+'px '+fontFamily;
-  const measure=document.createElement('canvas').getContext('2d');measure.font=font;
-  const textWidth=Math.ceil(measure.measureText(renderName).width);
-  const logicalW=Math.max(360,Math.min(2000,textWidth+250));
-  const logicalH=isBangla?150:148,dpr=3;
-  const canvas=document.createElement('canvas');canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
-  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const logicalW=360,logicalH=202.5,dpr=2;
+   const maxTextWidth=logicalW*0.68,measure=document.createElement('canvas').getContext('2d');
+   let fontSize=isBangla?46:48;const minFontSize=12;let font='400 '+fontSize+'px '+fontFamily;measure.font=font;
+   while(measure.measureText(renderName).width>maxTextWidth&&fontSize>minFontSize){fontSize--;font='400 '+fontSize+'px '+fontFamily;measure.font=font;}
+   const textWidth=Math.ceil(measure.measureText(renderName).width);
+   const canvas=document.createElement('canvas');canvas.width=720;canvas.height=405;
+   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   ctx.fillStyle='#c5c5c5';ctx.fillRect(0,0,logicalW,logicalH);
   ctx.fillStyle='#080808';ctx.strokeStyle='#080808';ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
   ctx.textAlign='center';ctx.textBaseline='middle';
