@@ -1,7 +1,7 @@
 from http.server import HTTPServer, ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid, traceback
+import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid, traceback, hashlib
 ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 PROJECTS_DIR = ROOT / "projects"
@@ -62,9 +62,12 @@ class Handler(SimpleHTTPRequestHandler):
                 with urlopen(service_url + '/health', timeout=15) as response:
                     status = response.status
                     data = json.loads(response.read().decode('utf-8'))
+                editor_token_fingerprint = hashlib.sha256(token.encode('utf-8')).hexdigest()[:12] if token else None
                 return json_reply(self, 200 if status == 200 and data.get('ok') else 502, {
                     'ok': bool(status == 200 and data.get('ok')),
                     'service': 'separate_playwright_pdf',
+                    'editor_token_configured': bool(token),
+                    'editor_token_fingerprint': editor_token_fingerprint,
                     'renderer': data
                 })
             except Exception as exc:
