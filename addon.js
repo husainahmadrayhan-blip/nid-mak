@@ -820,7 +820,7 @@ async function createNameMarkFromInput(){
    const fontSize=isBangla?14:18,fontFamily=isBangla?'"KalpanaANSI_Local"':'"Segoe Script", "Brush Script MT", "URW Chancery L", "Comic Sans MS", cursive';
    const font=`normal 400 ${fontSize}px ${fontFamily}`;measure.font=font;
    const textWidth=Math.ceil(measure.measureText(renderName).width);
-   const padX=isBangla?8:12;const padX=isBangla?8:12;
+   const padX=isBangla?8:12;
   const padY=5;
   const dpr=3;
   const logicalW=Math.max(180,Math.min(1500,textWidth+padX*2));
@@ -885,7 +885,7 @@ function createFlowingSignatureFromInput(){
    const font=isBangla?`normal 400 ${fontSize}px ${fontFamily}`:`italic 400 ${fontSize}px ${fontFamily}`;
    const measure=document.createElement('canvas').getContext('2d');measure.font=font;
    const textWidth=Math.ceil(measure.measureText(renderName).width);
-   const logicalW=Math.max(220,Math.min(1800,textWidth+100));const logicalW=Math.max(220,Math.min(1800,textWidth+100));
+   const logicalW=Math.max(220,Math.min(1800,textWidth+100));
   const logicalH=isBangla?66:76;
   const dpr=3;
   const canvas=document.createElement('canvas');
@@ -974,7 +974,7 @@ async function createCurvedHandwritingSignature(){
    while(measure.measureText(renderName).width>maxTextWidth&&fontSize>minFontSize){fontSize--;font='400 '+fontSize+'px '+fontFamily;measure.font=font;}
    const textWidth=Math.ceil(measure.measureText(renderName).width);
    const canvas=document.createElement('canvas');canvas.width=720;canvas.height=405;
-   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   ctx.fillStyle='#c5c5c5';ctx.fillRect(0,0,logicalW,logicalH);
   ctx.fillStyle='#080808';ctx.strokeStyle='#080808';ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
   ctx.textAlign='center';ctx.textBaseline='middle';
