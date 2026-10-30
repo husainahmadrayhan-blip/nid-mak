@@ -144,17 +144,15 @@ ui.innerHTML=`
 const staleAssetPreview=document.querySelectorAll('#extracted-asset-preview,.extracted-asset-preview,.asset-preview-grid,[data-role="extracted-asset-preview"]');
 staleAssetPreview.forEach(el=>el.remove());
 // Keep the complete PDF/JSON application inside the Tools Drawer.
-const editorToolsActions=document.getElementById('allEditorActions');
-if(editorToolsActions){
- ui.dataset.editorToolsPanel='true';
- editorToolsActions.append(ui);
+// The primary PDF Upload / Auto Fill form is part of the main workspace.
+// Only the separate Format → HTML Auto Fill tools belong in the Tools Drawer.
+const workArea=document.getElementById('work');
+const stageHolder=document.getElementById('stage-holder');
+if(workArea){
+ workArea.insertBefore(ui,stageHolder||workArea.firstChild);
 }else{
- // Keep the PDF/JSON panel out of the main preview area even on older layouts.
- const editorToolsDrawer=document.querySelector('main>aside');
- if(editorToolsDrawer){
-  ui.dataset.editorToolsPanel='true';
-  editorToolsDrawer.append(ui);
- }
+ const fallback=document.querySelector('main>aside');
+ if(fallback) fallback.append(ui);
 }
 // Keep advanced JSON/field-mapping controls in the editor sidebar instead of the main form.
 const toolsSidebar=document.getElementById('allEditorActions') || document.querySelector('main>aside, #sidebar, .sidebar, [role="complementary"]');
