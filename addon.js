@@ -144,10 +144,10 @@ ui.innerHTML=`
 const staleAssetPreview=document.querySelectorAll('#extracted-asset-preview,.extracted-asset-preview,.asset-preview-grid,[data-role="extracted-asset-preview"]');
 staleAssetPreview.forEach(el=>el.remove());
 // Keep the complete PDF/JSON application inside the Tools Drawer.
-const toolsSidebar=document.querySelector('main>aside');
-if(toolsSidebar){
+const editorToolsDrawer=document.querySelector('main>aside');
+if(editorToolsDrawer){
  ui.dataset.editorToolsPanel='true';
- toolsSidebar.append(ui);
+ editorToolsDrawer.append(ui);
 }else{
  // Safe fallback for older editor layouts that do not provide a sidebar.
  const workArea=document.getElementById('work');
