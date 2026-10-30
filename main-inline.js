@@ -323,3 +323,54 @@ $('downloadImage').onclick=async()=>{
  window.addEventListener('DOMContentLoaded',relocateFormatPanel,{once:true});
  window.addEventListener('load',relocateFormatPanel,{once:true});
 })();
+
+
+/* Mobile page-scroll fix:
+   The previous 42vh/60vh cap on #work clipped the lower form on phones.
+   Let the complete form participate in normal document scrolling. */
+(function(){
+ const cssId='mobile-full-page-scroll-fix';
+ if(document.getElementById(cssId)) return;
+ const style=document.createElement('style');
+ style.id=cssId;
+ style.textContent=`
+ @media (max-width:800px){
+   html,body{
+     height:auto!important;
+     min-height:100dvh!important;
+     overflow-x:hidden!important;
+     overflow-y:auto!important;
+   }
+   body>main,main{
+     display:flex!important;
+     flex-direction:column!important;
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     overflow:visible!important;
+   }
+   #work{
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     overflow:visible!important;
+     overflow-y:visible!important;
+     flex:0 0 auto!important;
+   }
+   #stage-holder{
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     overflow:visible!important;
+   }
+   main>aside,aside{
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     overflow:visible!important;
+     flex:0 0 auto!important;
+   }
+ }
+ `;
+ (document.head||document.documentElement).appendChild(style);
+})();
