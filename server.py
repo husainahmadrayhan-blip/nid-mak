@@ -74,34 +74,31 @@ class Handler(SimpleHTTPRequestHandler):
       const popup = nativeOpen.apply(window, arguments);
       window.open = nativeOpen;
       if (!popup) return popup;
-      // Window.print can be a protected/read-only property in Chromium.
-      // Proxy the popup so only the print() call is intercepted reliably.
       return new Proxy(popup, {
         get(target, property){
           if (property === 'print') return async function(){
-        try {
-          const html = '<!doctype html>' + popup.document.documentElement.outerHTML;
-          const response = await fetch('/api/pdf/create', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({html:html})
-          });
-          if (!response.ok) {
-            let message = 'PDF তৈরি করা যায়নি';
-            try { const data = await response.json(); message = data.error || message; } catch (_) {}
-            throw new Error(message);
-          }
-          const buffer = await response.arrayBuffer();
-          const sendPdf = function(messageEvent){
-            if (messageEvent.origin !== location.origin || messageEvent.data?.type !== 'PDF_VIEWER_READY') return;
-            window.removeEventListener('message', sendPdf);
-            messageEvent.source.postMessage({type:'PDF_VIEWER_LOAD',buffer:buffer}, location.origin, [buffer]);
-          };
-          window.addEventListener('message', sendPdf);
-          popup.location.href = '/pdf-viewer.html?source=editor';
-          setTimeout(function(){ window.removeEventListener('message', sendPdf); }, 30000);
-        } catch (error) {
-          try { popup.close(); } catch (_) {}
-          alert('PDF তৈরি করা যায়নি: ' + error.message);
+            try {
+              const html = '<!doctype html>' + popup.document.documentElement.outerHTML;
+              const response = await fetch('/api/pdf/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({html: html})
+              });
+              if (!response.ok) {
+                let message = 'PDF তৈরি করা যায়নি';
+                try { const data = await response.json(); message = data.error || message; } catch (_) {}
+                throw new Error(message);
+              }
+              const pdfBlob = await response.blob();
+              if (pdfBlob.type !== 'application/pdf') throw new Error('সার্ভার PDF ফাইল ফেরত দেয়নি');
+              const pdfUrl = URL.createObjectURL(pdfBlob);
+              // Navigate the already-opened tab to a real PDF Blob URL.
+              // Chromium then displays its built-in PDF viewer (not pdf-viewer.html).
+              popup.location.replace(pdfUrl);
+            } catch (error) {
+              try { popup.close(); } catch (_) {}
+              alert('PDF তৈরি করা যায়নি: ' + error.message);
+            }
           };
           const value = Reflect.get(target, property, target);
           return typeof value === 'function' ? value.bind(target) : value;
@@ -112,13 +109,11 @@ class Handler(SimpleHTTPRequestHandler):
   }, true);
 })();
 </script>'''
-            if 'PDF_VIEWER_READY' not in page:
-                # Insert before the final real closing tag. The editor contains a
-                # literal </body> inside its Print Preview JavaScript string.
+            if 'CHROME_NATIVE_PDF_BRIDGE' not in page:
                 body_close = page.lower().rfind('</body>')
                 if body_close < 0:
                     raise RuntimeError('Editor HTML closing body tag was not found')
-                page = page[:body_close] + bridge + '\n' + page[body_close:]
+                page = page[:body_close] + bridge.replace('<script>', '<script>/* CHROME_NATIVE_PDF_BRIDGE */', 1) + '\n' + page[body_close:]
             body = page.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
