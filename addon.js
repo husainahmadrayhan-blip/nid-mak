@@ -957,7 +957,9 @@ async function createCurvedHandwritingSignature(){
    await window.loadKalpanaANSIFont();
    const map={'অ':'A','আ':'Av','ই':'B','ঈ':'C','উ':'D','ঊ':'E','ঋ':'F','এ':'G','ঐ':'H','ও':'I','ঔ':'J','ক':'K','খ':'L','গ':'M','ঘ':'N','ঙ':'O','চ':'P','ছ':'Q','জ':'R','ঝ':'S','ঞ':'T','ট':'U','ঠ':'V','ড':'W','ঢ':'X','ণ':'Y','ত':'Z','থ':'_','দ':'`','ধ':'a','ন':'b','প':'c','ফ':'d','ব':'e','ভ':'f','ম':'g','য':'h','র':'i','ল':'j','শ':'k','ষ':'l','স':'m','হ':'n','ড়':'o','ঢ়':'p','য়':'q','ৎ':'r','া':'v','ি':'w','ী':'x','ু':'y','ূ':'~','ৃ':'…','ে':'‡','ৈ':'‰','ৗ':'Š','ং':'s','ঃ':'t','ঁ':'u','্':'&','০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9','।':'|',' ':' '};
    const conjuncts={'ক্ষ':'¶','জ্ঞ':'Á','ত্র':'Î','ক্র':'µ','গ্র':'Mª','প্র':'cÖ','দ্ব':'Ø','ন্দ':'›`','ন্ত':'šÍ','ন্ন':'bœ','ম্প':'¤ú','ম্ব':'¤^','ষ্ট':'ó','স্ক':'¯‹','স্ত':'¯—','স্প':'¯ú','হ্ন':'ý','হ্ম':'þ','ল্ল':'jø','ক্ক':'°','ক্ত':'³','ঙ্গ':'½','ঞ্জ':'Ä','চ্চ':'”P','চ্ছ':'”Q','জ্জ':'¾','ট্ট':'Æ','ণ্ড':'Ê','ত্ত':'Ë','দ্ধ':'×','প্ন':'cœ','প্ল':'c­'};
-   let converted=name;
+   // Bijoy/Kalpana ANSI places pre-base vowel signs before the consonant
+   // cluster. Unicode stores them after the consonant, so reorder before mapping.
+   let converted=name.replace(/([ক-হড়ঢ়য়ৎ](?:্[ক-হড়ঢ়য়ৎ])*)([েৈি])/g,'$2$1');
    for(const from of Object.keys(conjuncts).sort((a,b)=>b.length-a.length)) converted=converted.split(from).join(conjuncts[from]);
    renderName='';
    for(const ch of converted){
