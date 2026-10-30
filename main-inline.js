@@ -322,3 +322,43 @@ $('downloadImage').onclick=async()=>{
  // expanded as a full-page block on initial mobile load.
  document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
 })();
+
+
+/* Late-loaded Format Auto Fill relocation.
+   The default ZIP/project renderer injects this section after the initial drawer setup,
+   so the earlier one-time DOM scan can run too soon. Watch #work and move the actual
+   section once its heading, source textarea and both action buttons exist. */
+(function(){
+ if(window.__formatAutoFillRelocatorInstalled) return;
+ window.__formatAutoFillRelocatorInstalled=true;
+ const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+ const findAndMove=()=>{
+   const actions=document.getElementById('allEditorActions');
+   const work=document.getElementById('work');
+   if(!actions||!work) return false;
+   const sections=[...work.querySelectorAll('section')];
+   const target=sections.find(section=>{
+     const heading=[...section.querySelectorAll('h1,h2,h3,h4,h5,h6')].some(el=>
+       /format.*html.*autofill/.test(normalize(el.textContent)));
+     const source=section.querySelector('#format-source,textarea');
+     const buttons=[...section.querySelectorAll('button,input[type="button"],input[type="submit"]')];
+     const hasParse=buttons.some(el=>/normalparse/.test(normalize(el.innerText||el.textContent||el.value)));
+     const hasApply=buttons.some(el=>/applytohtml/.test(normalize(el.innerText||el.textContent||el.value)));
+     return heading&&source&&hasParse&&hasApply;
+   });
+   if(!target||actions.contains(target)) return false;
+   target.dataset.movedFormatTools='true';
+   actions.appendChild(target);
+   return true;
+ };
+ findAndMove();
+ const work=document.getElementById('work');
+ if(work){
+   const observer=new MutationObserver(()=>findAndMove());
+   observer.observe(work,{childList:true,subtree:true});
+ }
+ // Also retry after the default project/ZIP has finished its asynchronous load.
+ window.addEventListener('load',findAndMove,{once:true});
+ setTimeout(findAndMove,500);
+ setTimeout(findAndMove,1500);
+})();
