@@ -934,67 +934,70 @@ function createFlowingSignatureFromInput(){
  
 // Curved, bold handwriting-style signature. Render the full text first so Bengali
 // conjuncts stay shaped correctly, then gently bend the raster along a curved baseline.
-function createCurvedHandwritingSignature(){
+async function createCurvedHandwritingSignature(){
  try{
-  if(by('addon-sign-type').value!=='signature') throw Error('Rounded Signature তৈরি করতে Signature নির্বাচন করুন।');
+  if(by('addon-sign-type').value!=='signature') throw Error('Style 5 Signature তৈরি করতে Signature নির্বাচন করুন।');
   const name=String(by('addon-name-mark').value||'').trim().replace(/\\s+/g,' ');
   if(!name) throw Error('আগে বাংলা বা English নাম লিখুন।');
   const isBangla=/[\\u0980-\\u09FF]/.test(name);
+  // Load an actual Bengali display/handwritten-style font instead of relying on
+  // whatever bold Bengali fallback happens to be installed on the device.
+  if(!document.getElementById('addon-galada-font')){
+   const link=document.createElement('link');
+   link.id='addon-galada-font';link.rel='stylesheet';
+   link.href='https://fonts.googleapis.com/css2?family=Galada&display=swap';
+   document.head.appendChild(link);
+  }
+  if(isBangla){
+   try{await Promise.race([
+    document.fonts.load('400 46px "Galada"',name),
+    new Promise(resolve=>setTimeout(resolve,4500))
+   ]);}catch(e){console.warn('Galada font load failed; using Bengali fallback',e);}
+  }
   const fontFamily=isBangla
-   ? '"Siyam Rupali", "SolaimanLipi", "Noto Sans Bengali", "Nikosh", "Vrinda", serif'
-   : '"Segoe Script", "Brush Script MT", "Apple Chancery", "URW Chancery L", cursive';
-  const fontSize=isBangla?34:42;
-  const font=`italic 600 ${fontSize}px ${fontFamily}`;
-  const measure=document.createElement('canvas').getContext('2d');
-  measure.font=font;
+   ? '"Galada", "Noto Serif Bengali", "Siyam Rupali", serif'
+   : '"Segoe Script", "Brush Script MT", "Apple Chancery", cursive';
+  const fontSize=isBangla?46:48;
+  const font=`400 ${fontSize}px ${fontFamily}`;
+  const measure=document.createElement('canvas').getContext('2d');measure.font=font;
   const textWidth=Math.ceil(measure.measureText(name).width);
-  const logicalW=Math.max(320,Math.min(1900,textWidth+150));
-  const logicalH=isBangla?118:132,dpr=3;
-  const canvas=document.createElement('canvas');
-  canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
-  const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  // Style 5: rounded calligraphic loop, soft rounded lettering and a light-gray paper background.
+  const logicalW=Math.max(360,Math.min(2000,textWidth+250));
+  const logicalH=isBangla?150:148,dpr=3;
+  const canvas=document.createElement('canvas');canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   ctx.fillStyle='#c5c5c5';ctx.fillRect(0,0,logicalW,logicalH);
   ctx.fillStyle='#080808';ctx.strokeStyle='#080808';
   ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
   ctx.textAlign='center';ctx.textBaseline='middle';
-  const cx=logicalW*0.56,cy=logicalH*0.49;
-  ctx.save();
-  ctx.translate(cx,cy);
-  ctx.rotate(-0.025);
-  ctx.lineWidth=isBangla?1.8:2.2;
-  ctx.strokeText(name,0,0,logicalW*0.70);
-  ctx.fillText(name,0,0,logicalW*0.70);
-  ctx.restore();
-  // Rounded leading loop, kept clear of the first glyph.
-  const loopX=Math.max(24,logicalW*0.08);
-  ctx.beginPath();ctx.lineWidth=isBangla?2.0:2.4;
-  ctx.moveTo(loopX+logicalW*0.10,cy+fontSize*0.43);
-  ctx.bezierCurveTo(loopX-logicalW*0.01,cy+fontSize*0.12,
-                    loopX+logicalW*0.01,cy-fontSize*0.72,
-                    loopX+logicalW*0.20,cy-fontSize*0.72);
-  ctx.bezierCurveTo(loopX+logicalW*0.33,cy-fontSize*0.70,
-                    loopX+logicalW*0.30,cy-fontSize*0.12,
-                    loopX+logicalW*0.13,cy+fontSize*0.10);
+  const cx=logicalW*0.59,cy=logicalH*0.48;
+  // Style 5 reference: lighter calligraphic name, large rounded opening loop,
+  // and a long shallow underline. No block-bold font and no baseline warp.
+  ctx.fillText(name,cx,cy,logicalW*0.68);
+  const left=logicalW*0.08,right=Math.min(logicalW-18,cx+textWidth*0.46);
+  ctx.beginPath();ctx.lineWidth=isBangla?2.5:2.2;
+  ctx.moveTo(left+logicalW*0.12,cy+fontSize*0.42);
+  ctx.bezierCurveTo(left-logicalW*0.02,cy+fontSize*0.10,
+                    left+logicalW*0.01,cy-fontSize*0.72,
+                    left+logicalW*0.22,cy-fontSize*0.74);
+  ctx.bezierCurveTo(left+logicalW*0.38,cy-fontSize*0.74,
+                    left+logicalW*0.38,cy-fontSize*0.30,
+                    left+logicalW*0.18,cy+fontSize*0.02);
   ctx.stroke();
-  // Gentle rounded underline flourish, matching the selected fifth sample.
-  const textEnd=Math.min(logicalW-22,cx+textWidth*0.43);
-  ctx.beginPath();ctx.lineWidth=isBangla?1.8:2.0;
-  ctx.moveTo(loopX+logicalW*0.18,cy+fontSize*0.53);
-  ctx.bezierCurveTo(logicalW*0.40,cy+fontSize*0.92,
-                    logicalW*0.67,cy+fontSize*0.78,textEnd,cy+fontSize*0.42);
+  ctx.beginPath();ctx.lineWidth=isBangla?2.2:2;
+  ctx.moveTo(left+logicalW*0.23,cy+fontSize*0.58);
+  ctx.bezierCurveTo(logicalW*0.40,cy+fontSize*1.02,
+                    logicalW*0.70,cy+fontSize*0.98,right,cy+fontSize*0.48);
   ctx.stroke();
   const dataUrl=canvas.toDataURL('image/png');
   const raw=JSON.parse(by('addon-json').value||'{}');
   delete raw.fingerIMG;delete raw.fingerprintIMG;
   raw.signIMG=dataUrl;raw.markType='signature';
-  raw.signImageSource='generated-rounded-signature-style-5';
+  raw.signImageSource='generated-style-5-galada-calligraphy';
   by('addon-json').value=JSON.stringify(raw,null,2);
   updateInlineAssetPreview(raw);
-  if(doc){try{doc.querySelectorAll(mediaSelectors.signature).forEach(el=>{if(el.tagName==='IMG')el.setAttribute('src',dataUrl)});render();}catch(e){console.warn('Could not refresh rounded signature in HTML:',e);}}
-  msg(`${isBangla?'বাংলা':'English'} Rounded Signature (Style 5) তৈরি হয়েছে। ধূসর Background-সহ PNG JSON ও HTML Preview-তে বসানো হয়েছে।`);
- }catch(e){msg('Rounded Signature তৈরি হয়নি: '+e.message)}
+  if(doc){try{doc.querySelectorAll(mediaSelectors.signature).forEach(el=>{if(el.tagName==='IMG')el.setAttribute('src',dataUrl)});render();}catch(e){console.warn('Could not refresh Style 5 signature in HTML:',e);}}
+  msg(`${isBangla?'বাংলা':'English'} Style 5 Calligraphy Signature তৈরি হয়েছে। Galada font, ধূসর Background ও rounded loop ব্যবহার করা হয়েছে।`);
+ }catch(e){msg('Style 5 Signature তৈরি হয়নি: '+e.message)}
 }
 
 // Render the permanent extracted-data fields immediately on startup.
