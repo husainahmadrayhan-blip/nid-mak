@@ -55,6 +55,21 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if parsed.path in ('/', '/index.html'):
+            # Inject the mobile workspace stylesheet after the embedded index CSS.
+            # This keeps the large editor HTML untouched and ensures the fix is loaded.
+            page = (ROOT / 'index.html').read_text(encoding='utf-8')
+            link = '<link rel="stylesheet" href="/mobile-workspace-fix.css">'
+            if link not in page:
+                page = page.replace('</head>', link + '\\n</head>', 1)
+            body = page.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            self.wfile.write(body)
+            return
         return super().do_GET()
 
     def do_DELETE(self):
