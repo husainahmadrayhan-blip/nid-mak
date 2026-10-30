@@ -6,15 +6,10 @@ root.id='format-auto-fill-tools';
 const addon=document.getElementById('pdf-addon');
 const toolsActions=document.getElementById('allEditorActions');
 const toolsDrawer=document.querySelector('main>aside');
-if(toolsActions){
- toolsActions.append(root);
-}else if(toolsDrawer){
- toolsDrawer.append(root);
-}else if(addon){
- // Older layouts: never insert the Format panel into the main preview workspace.
- addon.parentNode.insertBefore(root,addon);
-}
-const el=id=>document.getElementById(id), status=s=>el('format-status').textContent=s;
+if(toolsActions){toolsActions.append(root);}
+else if(toolsDrawer){toolsDrawer.append(root);}
+else if(addon){addon.parentNode.insertBefore(root,addon);}
+const el=id=>document.getElementById(id), status=s=>el('format-status').textContent;
 const fields=el('format-fields');for(const [k,label] of F){const wrapper=document.createElement('label');wrapper.style.cssText='display:block;margin:7px 0;font-size:12px';wrapper.textContent=label;const inp=document.createElement('textarea');inp.rows=k==='address'?3:1;inp.id='format-'+k;inp.style.cssText='display:block;width:100%;box-sizing:border-box;margin-top:3px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px;padding:6px';wrapper.append(inp);fields.append(wrapper)}
 const clean=s=>String(s||'').replace(/^[\s:：\-–—]+/,'').trim();
 function parse(raw){const lines=raw.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean);let o={};
@@ -35,5 +30,13 @@ function write(o){for(const [k] of F)el('format-'+k).value=o[k]||''}
 el('format-parse').onclick=()=>{const data=parse(el('format-source').value);write(data);status(Object.keys(data).length+'টি ফিল্ড পাওয়া গেছে। ভুল থাকলে নিচের ঘরে সংশোধন করুন।')};
 el('format-fill').onclick=()=>{const data={};for(const [k] of F){const v=el('format-'+k).value.trim();if(v)data[k]=k==='nameEn'?v.toUpperCase():v}if(!Object.keys(data).length)return status('প্রথমে Format Parse করুন বা ঘর পূরণ করুন।');
 const json=el('addon-json'),fill=el('addon-fill');if(!json||!fill)return status('PDF Auto Fill module পাওয়া যায়নি।');let old={};try{old=JSON.parse(json.value||'{}')}catch(_){}json.value=JSON.stringify({...old,...data},null,2);fill.click();status('HTML-এ ৭টি নির্ধারিত ফিল্ডের ডাটা পাঠানো হয়েছে। Preview যাচাই করুন।')};
+// Synchronize edited PDF-extracted fields to the current HTML document.
+document.addEventListener('change',event=>{
+ const target=event.target;
+ if(target?.matches?.('#pdf-addon .app-field input, #pdf-addon .app-field textarea, #pdf-addon .app-field select, #addon-json')){
+  const fill=el('addon-fill');
+  if(fill && typeof doc!=='undefined' && doc) fill.click();
+ }
+});
 window.VisualFormatParser={parse};
 })();
