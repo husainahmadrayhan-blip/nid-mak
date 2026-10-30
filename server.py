@@ -53,47 +53,22 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
         if parsed.path == '/api/pdf/health':
-            # Real runtime check: launch the installed Chromium binary and render
-            # a tiny PDF. A plain /health response does not prove Chromium works.
+            service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
+            token = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
+            if not service_url or not token:
+                return json_reply(self, 503, {'ok': False, 'error': 'Set PDF_SERVICE_URL and PDF_SERVICE_TOKEN in Render environment'})
             try:
-                browserless_ws = os.environ.get('BROWSERLESS_WS_ENDPOINT', '').strip()
-                if not browserless_ws:
-                    return json_reply(self, 503, {
-                        'ok': False,
-                        'chromium': 'not_configured',
-                        'error': 'Set BROWSERLESS_WS_ENDPOINT in Render environment variables'
-                    })
-                from playwright.sync_api import sync_playwright
-                with sync_playwright() as playwright:
-                    browser = playwright.chromium.connect_over_cdp(
-                        browserless_ws, timeout=20000
-                    )
-                    try:
-                        context = browser.contexts[0] if browser.contexts else browser.new_context()
-                        page = context.new_page()
-                        page.set_content(
-                            '<!doctype html><html><body><h1>Remote Chromium PDF test</h1></body></html>',
-                            wait_until='domcontentloaded',
-                            timeout=10000
-                        )
-                        pdf_data = page.pdf(print_background=True)
-                        if not pdf_data.startswith(b'%PDF-'):
-                            raise RuntimeError('Remote Chromium returned invalid PDF bytes')
-                        return json_reply(self, 200, {
-                            'ok': True,
-                            'chromium': 'remote_running',
-                            'version': browser.version,
-                            'pdf_generated': True,
-                            'pdf_bytes': len(pdf_data)
-                        })
-                    finally:
-                        browser.close()
-            except Exception as exc:
-                return json_reply(self, 500, {
-                    'ok': False,
-                    'chromium': 'failed',
-                    'error': str(exc)[:1500]
+                from urllib.request import urlopen, Request
+                with urlopen(service_url + '/health', timeout=15) as response:
+                    status = response.status
+                    data = json.loads(response.read().decode('utf-8'))
+                return json_reply(self, 200 if status == 200 and data.get('ok') else 502, {
+                    'ok': bool(status == 200 and data.get('ok')),
+                    'service': 'separate_playwright_pdf',
+                    'renderer': data
                 })
+            except Exception as exc:
+                return json_reply(self, 502, {'ok': False, 'service': 'separate_playwright_pdf', 'error': str(exc)[:1200]})
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -208,68 +183,47 @@ class Handler(SimpleHTTPRequestHandler):
                 document_html = payload.get('html')
                 if not isinstance(document_html, str) or '<html' not in document_html.lower():
                     raise ValueError('Valid HTML print document is required')
-                browserless_ws = os.environ.get('BROWSERLESS_WS_ENDPOINT', '').strip()
-                if not browserless_ws:
+                service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
+                token = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
+                if not service_url or not token:
                     return json_reply(self, 503, {
                         'ok': False,
-                        'error': 'Remote Chromium is not configured. Set BROWSERLESS_WS_ENDPOINT in Render.'
+                        'error': 'PDF service is not configured. Set PDF_SERVICE_URL and PDF_SERVICE_TOKEN in Render.'
                     })
-                from playwright.sync_api import sync_playwright
-                forwarded_proto = self.headers.get('X-Forwarded-Proto', 'http').split(',')[0].strip()
+                from urllib.request import Request, urlopen
+                from urllib.error import HTTPError, URLError
+                forwarded_proto = self.headers.get('X-Forwarded-Proto', 'https').split(',')[0].strip()
                 host = self.headers.get('Host', '127.0.0.1')
                 origin = forwarded_proto + '://' + host
-                with sync_playwright() as playwright:
-                    browser = playwright.chromium.connect_over_cdp(
-                        browserless_ws, timeout=20000
-                    )
-                    try:
-                        # Reuse Browserless' established CDP context. The health check
-                        # confirms this context can create pages and render PDFs; creating a
-                        # second context on the remote CDP session can be closed by the provider.
-                        context = browser.contexts[0] if browser.contexts else browser.new_context()
-                        page = context.new_page()
-                        # Resolve relative image/font/CSS URLs from the editor origin.
-                        base_tag = '<base href="' + origin + '/">'
-                        if re.search(r'<head[^>]*>', document_html, flags=re.I):
-                            document_html = re.sub(r'(<head[^>]*>)', r'\1' + base_tag, document_html, count=1, flags=re.I)
-                        # Render's reverse proxy can close long-running requests.
-                        # Do not wait for networkidle: analytics/CDN/font connections can
-                        # keep it pending until the proxy reports "Failed to fetch".
-                        page.set_content(document_html, wait_until='domcontentloaded', timeout=15000)
-                        try:
-                            page.wait_for_function(
-                                "() => !document.fonts || document.fonts.status === 'loaded'",
-                                timeout=5000
-                            )
-                        except Exception:
-                            pass
-                        # Wait briefly for local/data-URI images; never block indefinitely.
-                        try:
-                            page.wait_for_function(
-                                "() => Array.from(document.images).every(img => img.complete)",
-                                timeout=4000
-                            )
-                        except Exception:
-                            pass
-                        pdf_data = page.pdf(
-                            print_background=True,
-                            prefer_css_page_size=True
-                        )
-                        if not pdf_data.startswith(b'%PDF-'):
-                            raise RuntimeError('Chromium did not return a valid PDF')
-                    finally:
-                        browser.close()
-                # Keep the generated PDF briefly and expose it as a same-origin
-                # application/pdf URL. This makes Chrome use its native PDF viewer.
+                request_body = json.dumps({'html': document_html, 'base_url': origin}).encode('utf-8')
+                request = Request(
+                    service_url + '/render',
+                    data=request_body,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    method='POST'
+                )
+                try:
+                    with urlopen(request, timeout=120) as response:
+                        pdf_data = response.read()
+                except HTTPError as exc:
+                    detail = exc.read(4000).decode('utf-8', errors='replace')
+                    raise RuntimeError('PDF renderer returned HTTP ' + str(exc.code) + ': ' + detail)
+                except URLError as exc:
+                    raise RuntimeError('Could not connect to PDF renderer: ' + str(exc.reason))
+                if not pdf_data.startswith(b'%PDF-'):
+                    raise RuntimeError('PDF renderer returned invalid PDF bytes')
                 now = time.time()
                 for old_token, old_entry in list(PDF_PREVIEWS.items()):
                     if old_entry[0] < now:
                         PDF_PREVIEWS.pop(old_token, None)
-                token = uuid.uuid4().hex
-                PDF_PREVIEWS[token] = (now + 600, pdf_data)
-                return json_reply(self, 200, {'ok': True, 'url': '/api/pdf/view?id=' + token})
+                token_id = uuid.uuid4().hex
+                PDF_PREVIEWS[token_id] = (now + 600, pdf_data)
+                return json_reply(self, 200, {'ok': True, 'url': '/api/pdf/view?id=' + token_id})
             except Exception as exc:
-                print('[PDF_CREATE] Unhandled PDF generation failure:', repr(exc), flush=True)
+                print('[PDF_CREATE] PDF service request failed:', repr(exc), flush=True)
                 traceback.print_exc()
                 return json_reply(self, 500, {'ok': False, 'error': 'PDF তৈরি ব্যর্থ: ' + str(exc)})
         if parsed.path == '/api/projects/save':
