@@ -1,5 +1,5 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-import os, json, traceback
+import os, json, traceback, hashlib
 from playwright.sync_api import sync_playwright
 
 TOKEN = os.environ.get("PDF_SERVICE_TOKEN", "").strip()
@@ -16,7 +16,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self.reply(200, b'{"ok":true,"service":"playwright-pdf"}')
+            fingerprint = hashlib.sha256(TOKEN.encode("utf-8")).hexdigest()[:12] if TOKEN else None
+            body = json.dumps({
+                "ok": True,
+                "service": "playwright-pdf",
+                "token_configured": bool(TOKEN),
+                "token_fingerprint": fingerprint
+            }).encode("utf-8")
+            self.reply(200, body)
         else:
             self.reply(404, b'{"ok":false,"error":"not found"}')
 
