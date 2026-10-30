@@ -61,7 +61,7 @@ class Handler(SimpleHTTPRequestHandler):
             page = (ROOT / 'index.html').read_text(encoding='utf-8')
             link = '<link rel="stylesheet" href="/mobile-workspace-fix.css">'
             if link not in page:
-                page = page.replace('</head>', link + '\\n</head>', 1)
+                page = page.replace('</head>', link + '\n</head>', 1)
             body = page.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
