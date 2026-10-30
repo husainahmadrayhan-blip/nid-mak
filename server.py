@@ -1,11 +1,12 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time
+import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid
 ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 PROJECTS_DIR = ROOT / "projects"
 PROJECTS_DIR.mkdir(exist_ok=True)
+PDF_PREVIEWS = {}
 
 def clean_project_name(raw):
     name = re.sub(r'[<>:"/\\\\|?*\x00-\x1f]', '_', str(raw or '').strip())
@@ -32,6 +33,23 @@ class Handler(SimpleHTTPRequestHandler):
         # Browsers request this automatically; the editor has no favicon asset.
         if parsed.path == '/favicon.ico':
             self.send_response(204); self.send_header('Content-Length', '0'); self.end_headers(); return
+        if parsed.path == '/api/pdf/view':
+            token = parse_qs(parsed.query).get('id', [''])[0]
+            entry = PDF_PREVIEWS.get(token)
+            if not entry or entry[0] < time.time():
+                PDF_PREVIEWS.pop(token, None)
+                self.send_error(404, 'PDF preview expired or not found')
+                return
+            data = entry[1]
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/pdf')
+            self.send_header('Content-Disposition', 'inline; filename="editor-preview.pdf"')
+            self.send_header('Content-Length', str(len(data)))
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
         if parsed.path == '/api/projects':
@@ -89,12 +107,11 @@ class Handler(SimpleHTTPRequestHandler):
                 try { const data = await response.json(); message = data.error || message; } catch (_) {}
                 throw new Error(message);
               }
-              const pdfBlob = await response.blob();
-              if (pdfBlob.type !== 'application/pdf') throw new Error('সার্ভার PDF ফাইল ফেরত দেয়নি');
-              const pdfUrl = URL.createObjectURL(pdfBlob);
-              // Navigate the already-opened tab to a real PDF Blob URL.
-              // Chromium then displays its built-in PDF viewer (not pdf-viewer.html).
-              popup.location.replace(pdfUrl);
+              const result = await response.json();
+              if (!result.ok || !result.url) throw new Error(result.error || 'PDF URL পাওয়া যায়নি');
+              // A same-origin HTTP response with application/pdf reliably invokes
+              // Chrome's built-in PDF viewer in the already-opened tab.
+              popup.location.replace(result.url);
             } catch (error) {
               try { popup.close(); } catch (_) {}
               alert('PDF তৈরি করা যায়নি: ' + error.message);
@@ -162,14 +179,15 @@ class Handler(SimpleHTTPRequestHandler):
                         pdf_data = page.pdf(print_background=True, prefer_css_page_size=True)
                     finally:
                         browser.close()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/pdf')
-                self.send_header('Content-Disposition', 'inline; filename="editor-preview.pdf"')
-                self.send_header('Content-Length', str(len(pdf_data)))
-                self.send_header('Cache-Control', 'no-store')
-                self.end_headers()
-                self.wfile.write(pdf_data)
-                return
+                # Keep the generated PDF briefly and expose it as a same-origin
+                # application/pdf URL. This makes Chrome use its native PDF viewer.
+                now = time.time()
+                for old_token, old_entry in list(PDF_PREVIEWS.items()):
+                    if old_entry[0] < now:
+                        PDF_PREVIEWS.pop(old_token, None)
+                token = uuid.uuid4().hex
+                PDF_PREVIEWS[token] = (now + 600, pdf_data)
+                return json_reply(self, 200, {'ok': True, 'url': '/api/pdf/view?id=' + token})
             except Exception as exc:
                 return json_reply(self, 500, {'ok': False, 'error': 'PDF তৈরি ব্যর্থ: ' + str(exc)})
         if parsed.path == '/api/projects/save':
