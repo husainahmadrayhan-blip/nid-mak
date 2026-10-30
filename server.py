@@ -180,9 +180,32 @@ class Handler(SimpleHTTPRequestHandler):
                         base_tag = '<base href="' + origin + '/">'
                         if re.search(r'<head[^>]*>', document_html, flags=re.I):
                             document_html = re.sub(r'(<head[^>]*>)', r'\\1' + base_tag, document_html, count=1, flags=re.I)
-                        page.set_content(document_html, wait_until='networkidle', timeout=90000)
-                        page.evaluate("() => document.fonts ? document.fonts.ready : Promise.resolve()")
-                        pdf_data = page.pdf(print_background=True, prefer_css_page_size=True)
+                        # Render's reverse proxy can close long-running requests.
+                        # Do not wait for networkidle: analytics/CDN/font connections can
+                        # keep it pending until the proxy reports "Failed to fetch".
+                        page.set_content(document_html, wait_until='domcontentloaded', timeout=15000)
+                        try:
+                            page.wait_for_function(
+                                "() => !document.fonts || document.fonts.status === 'loaded'",
+                                timeout=5000
+                            )
+                        except Exception:
+                            pass
+                        # Wait briefly for local/data-URI images; never block indefinitely.
+                        try:
+                            page.wait_for_function(
+                                "() => Array.from(document.images).every(img => img.complete)",
+                                timeout=4000
+                            )
+                        except Exception:
+                            pass
+                        pdf_data = page.pdf(
+                            print_background=True,
+                            prefer_css_page_size=True,
+                            timeout=15000
+                        )
+                        if not pdf_data.startswith(b'%PDF-'):
+                            raise RuntimeError('Chromium did not return a valid PDF')
                     finally:
                         browser.close()
                 # Keep the generated PDF briefly and expose it as a same-origin
