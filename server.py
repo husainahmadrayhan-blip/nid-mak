@@ -223,10 +223,10 @@ class Handler(SimpleHTTPRequestHandler):
                         browserless_ws, timeout=20000
                     )
                     try:
-                        # Use an isolated context so Browserless' shared default page/session
-                        # cannot be closed by another request. The captured HTML is already
-                        # rendered by the editor, so its scripts must not run a second time.
-                        context = browser.new_context(java_script_enabled=False)
+                        # Reuse Browserless' established CDP context. The health check
+                        # confirms this context can create pages and render PDFs; creating a
+                        # second context on the remote CDP session can be closed by the provider.
+                        context = browser.contexts[0] if browser.contexts else browser.new_context()
                         page = context.new_page()
                         # Resolve relative image/font/CSS URLs from the editor origin.
                         base_tag = '<base href="' + origin + '/">'
