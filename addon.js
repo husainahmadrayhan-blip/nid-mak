@@ -373,7 +373,7 @@ function ensureInlineAssetPreview(role, title) {
    curvedBtn.type = 'button';
    curvedBtn.id = 'addon-create-curved-signature';
    curvedBtn.className = 'secondary';
-   curvedBtn.textContent = 'Curved Handwriting Signature';
+   curvedBtn.textContent = 'Bold Signature (Gray Background)';
    curvedBtn.style.cssText = 'display:none;padding:8px 11px;min-height:34px;font-size:12px;';
    curvedBtn.addEventListener('click', createCurvedHandwritingSignature);
    details.append(rotateBtn, removeBtn, nameInput, createBtn, flowBtn, curvedBtn);
@@ -936,54 +936,58 @@ function createFlowingSignatureFromInput(){
 // conjuncts stay shaped correctly, then gently bend the raster along a curved baseline.
 function createCurvedHandwritingSignature(){
  try{
-  if(by('addon-sign-type').value!=='signature') throw Error('Curved Signature তৈরি করতে Signature নির্বাচন করুন।');
+  if(by('addon-sign-type').value!=='signature') throw Error('Bold Signature তৈরি করতে Signature নির্বাচন করুন।');
   const name=String(by('addon-name-mark').value||'').trim().replace(/\\s+/g,' ');
   if(!name) throw Error('আগে বাংলা বা English নাম লিখুন।');
   const isBangla=/[\\u0980-\\u09FF]/.test(name);
   const fontFamily=isBangla
    ? '"Siyam Rupali", "SolaimanLipi", "Noto Sans Bengali", "Nikosh", "Vrinda", serif'
    : '"Segoe Script", "Brush Script MT", "Apple Chancery", "URW Chancery L", cursive';
-  const fontSize=isBangla?30:38, font=`italic 600 ${fontSize}px ${fontFamily}`;
-  const measure=document.createElement('canvas').getContext('2d');measure.font=font;
+  const fontSize=isBangla?34:42;
+  const font=`normal 800 ${fontSize}px ${fontFamily}`;
+  const measure=document.createElement('canvas').getContext('2d');
+  measure.font=font;
   const textWidth=Math.ceil(measure.measureText(name).width);
-  const logicalW=Math.max(260,Math.min(1900,textWidth+110)),logicalH=isBangla?112:126,dpr=3;
-  const canvas=document.createElement('canvas');canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.scale(dpr,dpr);
-  ctx.clearRect(0,0,logicalW,logicalH);ctx.fillStyle='#080808';ctx.strokeStyle='#080808';
-  ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;ctx.textAlign='center';ctx.textBaseline='middle';
-  const cx=logicalW/2,cy=logicalH*0.46;
-  ctx.save();ctx.translate(cx,cy);ctx.rotate(-0.055);ctx.scale(isBangla?1.04:1.08,1);
-  ctx.lineWidth=isBangla?0.75:1.15;ctx.strokeText(name,0,0,logicalW-76);ctx.fillText(name,0,0,logicalW-76);ctx.restore();
-  const left=Math.max(12,(logicalW-textWidth)/2-24),right=Math.min(logicalW-12,(logicalW+textWidth)/2+24);
-  ctx.beginPath();ctx.lineWidth=1.45;ctx.moveTo(left+8,cy+fontSize*0.53);
-  ctx.bezierCurveTo(left+logicalW*0.18,cy+fontSize*0.92,right-logicalW*0.18,cy+fontSize*0.82,right-4,cy+fontSize*0.43);ctx.stroke();
-  ctx.beginPath();ctx.lineWidth=1.15;ctx.moveTo(right-10,cy+fontSize*0.43);
-  ctx.bezierCurveTo(right+12,cy+fontSize*0.12,Math.min(logicalW-8,right+20),cy-fontSize*0.20,Math.min(logicalW-7,right+3),cy-fontSize*0.12);ctx.stroke();
-  const src=ctx.getImageData(0,0,canvas.width,canvas.height),curved=ctx.createImageData(canvas.width,canvas.height);
-  const amplitude=Math.round(5.5*dpr);
-  for(let x=0;x<canvas.width;x++){
-   const shift=Math.round(Math.sin((x/canvas.width)*Math.PI*2-Math.PI/2)*amplitude);
-   for(let y=0;y<canvas.height;y++){const ty=y+shift;if(ty<0||ty>=canvas.height)continue;
-    const si=(y*canvas.width+x)*4,di=(ty*canvas.width+x)*4;
-    curved.data[di]=src.data[si];curved.data[di+1]=src.data[si+1];curved.data[di+2]=src.data[si+2];curved.data[di+3]=src.data[si+3];}
+  const logicalW=Math.max(300,Math.min(1900,textWidth+100));
+  const logicalH=isBangla?100:112,dpr=3;
+  const canvas=document.createElement('canvas');
+  canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  // Solid light-gray background, matching the supplied reference image.
+  ctx.fillStyle='#c5c5c5';
+  ctx.fillRect(0,0,logicalW,logicalH);
+  ctx.fillStyle='#050505';
+  ctx.strokeStyle='#050505';
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.font=font;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  const x=logicalW/2,y=logicalH/2;
+  // Keep the baseline straight: bold lettering only, no rotation, curve or swash.
+  ctx.lineWidth=isBangla?1.8:2.2;
+  ctx.strokeText(name,x,y,logicalW-48);
+  ctx.fillText(name,x,y,logicalW-48);
+  const dataUrl=canvas.toDataURL('image/png');
+  const raw=JSON.parse(by('addon-json').value||'{}');
+  delete raw.fingerIMG;
+  delete raw.fingerprintIMG;
+  raw.signIMG=dataUrl;
+  raw.markType='signature';
+  raw.signImageSource='generated-bold-straight-gray-background';
+  by('addon-json').value=JSON.stringify(raw,null,2);
+  updateInlineAssetPreview(raw);
+  if(doc){
+   try{
+    doc.querySelectorAll(mediaSelectors.signature).forEach(el=>{
+     if(el.tagName==='IMG')el.setAttribute('src',dataUrl);
+    });
+    render();
+   }catch(e){console.warn('Could not refresh bold signature in HTML:',e);}
   }
-  const warped=document.createElement('canvas');warped.width=canvas.width;warped.height=canvas.height;
-  warped.getContext('2d').putImageData(curved,0,0);
-  const px=curved.data;let minX=warped.width,minY=warped.height,maxX=-1,maxY=-1;
-  for(let y=0;y<warped.height;y++)for(let x=0;x<warped.width;x++)if(px[(y*warped.width+x)*4+3]>8){
-   if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
-  let dataUrl=warped.toDataURL('image/png');
-  if(maxX>=minX&&maxY>=minY){const pad=5*dpr;minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);
-   maxX=Math.min(warped.width-1,maxX+pad);maxY=Math.min(warped.height-1,maxY+pad);
-   const trimmed=document.createElement('canvas');trimmed.width=maxX-minX+1;trimmed.height=maxY-minY+1;
-   trimmed.getContext('2d').drawImage(warped,minX,minY,trimmed.width,trimmed.height,0,0,trimmed.width,trimmed.height);
-   dataUrl=trimmed.toDataURL('image/png');}
-  const raw=JSON.parse(by('addon-json').value||'{}');delete raw.fingerIMG;delete raw.fingerprintIMG;
-  raw.signIMG=dataUrl;raw.markType='signature';raw.signImageSource='generated-curved-handwriting-signature';
-  by('addon-json').value=JSON.stringify(raw,null,2);updateInlineAssetPreview(raw);
-  if(doc){try{doc.querySelectorAll(mediaSelectors.signature).forEach(el=>{if(el.tagName==='IMG')el.setAttribute('src',dataUrl)});render();}catch(e){console.warn('Could not refresh curved signature in HTML:',e);}}
-  msg(`${isBangla?'বাংলা':'English'} Curved Handwriting Signature তৈরি হয়েছে। Preview দেখে HTML Export করুন।`);
- }catch(e){msg('Curved Signature তৈরি হয়নি: '+e.message)}
+  msg(`${isBangla?'বাংলা':'English'} Bold Signature তৈরি হয়েছে। হালকা ধূসর Background-সহ PNG JSON ও HTML Preview-তে বসানো হয়েছে।`);
+ }catch(e){msg('Bold Signature তৈরি হয়নি: '+e.message)}
 }
 
 // Render the permanent extracted-data fields immediately on startup.
