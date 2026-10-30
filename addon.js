@@ -968,13 +968,14 @@ async function createCurvedHandwritingSignature(){
     else throw Error('এই বাংলা অক্ষরের Kalpana mapping এখনো যোগ করা হয়নি: '+ch);
    }
   }
-  const logicalW=360,logicalH=202.5,dpr=2;
-   const maxTextWidth=logicalW*0.68,measure=document.createElement('canvas').getContext('2d');
-   let fontSize=isBangla?46:48;const minFontSize=12;let font='400 '+fontSize+'px '+fontFamily;measure.font=font;
-   while(measure.measureText(renderName).width>maxTextWidth&&fontSize>minFontSize){fontSize--;font='400 '+fontSize+'px '+fontFamily;measure.font=font;}
-   const textWidth=Math.ceil(measure.measureText(renderName).width);
-   const canvas=document.createElement('canvas');canvas.width=720;canvas.height=405;
-   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  // Match the supplied reference image exactly: 1529 × 634 (about 2.41:1).
+  const logicalW=360,logicalH=logicalW*634/1529,dpr=1529/logicalW;
+  const maxTextWidth=logicalW*0.68,measure=document.createElement('canvas').getContext('2d');
+  let fontSize=isBangla?46:48;const minFontSize=12;let font='400 '+fontSize+'px '+fontFamily;measure.font=font;
+  while(measure.measureText(renderName).width>maxTextWidth&&fontSize>minFontSize){fontSize--;font='400 '+fontSize+'px '+fontFamily;measure.font=font;}
+  const textWidth=Math.ceil(measure.measureText(renderName).width);
+  const canvas=document.createElement('canvas');canvas.width=1529;canvas.height=634;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   ctx.fillStyle='#c5c5c5';ctx.fillRect(0,0,logicalW,logicalH);
   ctx.fillStyle='#080808';ctx.strokeStyle='#080808';ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
   ctx.textAlign='center';ctx.textBaseline='middle';
