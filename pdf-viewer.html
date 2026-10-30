@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Original PDF Viewer & Print</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef2f7;color:#17243a;font:14px/1.45 system-ui,Arial,sans-serif}.top{background:#172b4d;color:white;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}.top a{color:white}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;background:white;border-bottom:1px solid #d4dce7;position:sticky;top:0;z-index:3}.toolbar button,.toolbar select,.toolbar input{font:inherit;padding:8px 10px;border:1px solid #c5d0de;border-radius:7px;background:white}.toolbar button{cursor:pointer}.toolbar button.primary,.pick{background:#1d5fa7;color:white;border:0}.pick{padding:9px 12px;border-radius:7px;cursor:pointer}.pick input{display:none}#status{padding:8px 13px;background:#fff;color:#52627a}#viewer{height:calc(100vh - 155px);overflow:auto;padding:18px;display:flex;justify-content:center;align-items:flex-start}#page{background:white;box-shadow:0 4px 22px #1b2e4a30;max-width:none}#print-settings{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:#f7f9fc;border-bottom:1px solid #d4dce7}.hint{color:#61718a;font-size:12px}
+@media(max-width:650px){.toolbar{gap:5px;padding:8px}.toolbar button,.toolbar select{padding:7px;font-size:12px}.toolbar input[type=search]{width:115px}.top{padding:10px}.top h3{font-size:15px}#viewer{height:calc(100dvh - 230px);padding:8px}}
+</style></head><body>
+<div class="top"><h3>📄 Original PDF Viewer & Print</h3><a href="/">← Back to Editor</a></div>
+<div class="toolbar">
+<label class="pick">Open PDF<input id="file" type="file" accept="application/pdf,.pdf"></label>
+<button id="prev">◀</button><input id="pageNo" type="number" min="1" value="1" style="width:65px"><span id="total">/ 0</span><button id="next">▶</button>
+<button id="minus">− Zoom</button><span id="zoom">100%</span><button id="plus">＋ Zoom</button>
+<select id="fit"><option value="width">Fit Width</option><option value="page">Fit Page</option><option value="actual">Actual Size</option></select>
+<button id="rotate">↻ Rotate</button><button id="fullscreen">⛶ Full Screen</button>
+<input id="search" type="search" placeholder="Search text"><button id="find">Find</button>
+<button id="download">Download Original</button><button id="print" class="primary">Print</button>
+</div>
+<div id="print-settings">
+<strong>Print settings:</strong><label>Paper <select id="paper"><option>A4</option><option>A5</option><option>Letter</option></select></label>
+<label>Orientation <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+<label>Scale <select id="printScale"><option value="fit">Fit to Page</option><option value="actual">Actual Size</option></select></label>
+<span class="hint">All pages are included in print preview.</span>
+</div>
+<div id="status">Choose a PDF file. The viewer renders the original PDF; it does not convert or edit the source file.</div><main id="viewer"><canvas id="page"></canvas></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+let pdf=null,original=null,page=1,scale=1,rotation=0,fitMode='width',busy=false;
+const canvas=$('page'),ctx=canvas.getContext('2d');
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+function say(t){$('status').textContent=t}
+async function openFile(file){
+ try{
+  if(!file||(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'))throw Error('Please choose a PDF file.');
+  original=await file.arrayBuffer();say('Loading PDF…');
+  if(!window.pdfjsLib)throw Error('PDF.js could not load. Check your internet connection and reload this page.');
+  pdf=await pdfjsLib.getDocument({data:new Uint8Array(original.slice(0))}).promise;
+  page=1;rotation=0;$('total').textContent='/ '+pdf.numPages;$('pageNo').max=pdf.numPages;
+  say('Loaded original PDF: '+pdf.numPages+' page(s).');await render();
+ }catch(e){say('Open failed: '+e.message)}
+}
+async function render(){
+ if(!pdf||busy)return;busy=true;
+ try{
+  const p=await pdf.getPage(page),base=p.getViewport({scale:1,rotation:(p.rotate+rotation)%360});
+  const box=$('viewer'),availableW=Math.max(100,box.clientWidth-36),availableH=Math.max(100,box.clientHeight-36);
+  if(fitMode==='width')scale=availableW/base.width;
+  else if(fitMode==='page')scale=Math.min(availableW/base.width,availableH/base.height);
+  else scale=Math.max(.2,Math.min(5,scale));
+  $('zoom').textContent=Math.round(scale*100)+'%';
+  const vp=p.getViewport({scale,rotation:(p.rotate+rotation)%360}),dpr=Math.min(2,window.devicePixelRatio||1);
+  canvas.width=Math.ceil(vp.width*dpr);canvas.height=Math.ceil(vp.height*dpr);
+  canvas.style.width=vp.width+'px';canvas.style.height=vp.height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+  await p.render({canvasContext:ctx,viewport:vp}).promise;
+  $('pageNo').value=page;
+ }catch(e){say('Render error: '+e.message)}finally{busy=false}
+}
+function go(n){if(!pdf)return;page=Math.max(1,Math.min(pdf.numPages,Number(n)||1));render()}
+$('file').onchange=e=>{if(e.target.files[0])openFile(e.target.files[0])};
+$('prev').onclick=()=>go(page-1);$('next').onclick=()=>go(page+1);$('pageNo').onchange=()=>go($('pageNo').value);
+$('plus').onclick=()=>{fitMode='actual';$('fit').value='actual';scale=Math.min(5,scale*1.2);render()};
+$('minus').onclick=()=>{fitMode='actual';$('fit').value='actual';scale=Math.max(.2,scale/1.2);render()};
+$('fit').onchange=()=>{fitMode=$('fit').value;render()};
+$('rotate').onclick=()=>{rotation=(rotation+90)%360;render()};
+$('fullscreen').onclick=()=>{if(!document.fullscreenElement)$('viewer').requestFullscreen?.();else document.exitFullscreen?.()};
+window.addEventListener('resize',()=>{if(pdf&&fitMode!=='actual')render()});
+$('download').onclick=()=>{if(!original)return say('Open a PDF first.');const url=URL.createObjectURL(new Blob([original],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download='original.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)};
+$('find').onclick=search;$('search').onkeydown=e=>{if(e.key==='Enter')search()};
+async function search(){
+ if(!pdf)return say('Open a PDF first.');const q=$('search').value.trim().toLowerCase();if(!q)return;
+ say('Searching all pages…');
+ try{for(let n=1;n<=pdf.numPages;n++){const p=await pdf.getPage(n),text=await p.getTextContent();if(text.items.some(x=>(x.str||'').toLowerCase().includes(q))){go(n);say('Found on page '+n);return}}say('Text not found.')}
+ catch(e){say('Search failed: '+e.message)}
+}
+$('print').onclick=printAll;
+async function printAll(){
+ if(!pdf)return say('Open a PDF first.');
+ const win=window.open('','_blank');if(!win)return say('Allow pop-ups to open browser print preview.');
+ const paper=$('paper').value,orientation=$('orientation').value,mode=$('printScale').value;
+ const dims={A4:[210,297],A5:[148,210],Letter:[215.9,279.4]}[paper],w=orientation==='landscape'?dims[1]:dims[0],h=orientation==='landscape'?dims[0]:dims[1];
+ win.document.open();win.document.write('<!doctype html><html><head><title>PDF Print</title><style>@page{size:'+paper+' '+orientation+';margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}.sheet{width:'+w+'mm;height:'+h+'mm;display:flex;align-items:center;justify-content:center;overflow:hidden;break-after:page;page-break-after:always}.sheet:last-child{break-after:auto;page-break-after:auto}canvas{display:block}</style></head><body><main id="pages"></main></body></html>');win.document.close();
+ try{
+  const root=win.document.getElementById('pages');
+  for(let n=1;n<=pdf.numPages;n++){
+   const p=await pdf.getPage(n),v0=p.getViewport({scale:1,rotation:(p.rotate+rotation)%360});
+   const maxW=w*96/25.4,maxH=h*96/25.4,factor=mode==='actual'?1:Math.min(maxW/v0.width,maxH/v0.height);
+   const vp=p.getViewport({scale:factor,rotation:(p.rotate+rotation)%360}),c=win.document.createElement('canvas'),cx=c.getContext('2d'),dpr=2;
+   c.width=Math.ceil(vp.width*dpr);c.height=Math.ceil(vp.height*dpr);c.style.width=vp.width+'px';c.style.height=vp.height+'px';cx.setTransform(dpr,0,0,dpr,0,0);
+   await p.render({canvasContext:cx,viewport:vp}).promise;
+   const sheet=win.document.createElement('section');sheet.className='sheet';sheet.appendChild(c);root.appendChild(sheet);
+  }
+  say('All '+pdf.numPages+' pages ready. Browser print preview opened.');win.focus();setTimeout(()=>win.print(),600);
+ }catch(e){win.close();say('Print preparation failed: '+e.message)}
+}
+})();
+</script></body></html>
