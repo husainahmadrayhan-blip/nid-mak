@@ -937,84 +937,61 @@ function createFlowingSignatureFromInput(){
 async function createCurvedHandwritingSignature(){
  try{
   if(by('addon-sign-type').value!=='signature') throw Error('Style 5 Signature তৈরি করতে Signature নির্বাচন করুন।');
-  const name=String(by('addon-name-mark').value||'').trim().replace(/\\s+/g,' ');
+  const name=String(by('addon-name-mark').value||'').trim().replace(/\s+/g,' ');
   if(!name) throw Error('আগে বাংলা বা English নাম লিখুন।');
-  const isBangla=/[\\u0980-\\u09FF]/.test(name);
-  // Load an actual Bengali display/handwritten-style font instead of relying on
-  // whatever bold Bengali fallback happens to be installed on the device.
+  const isBangla=/[\u0980-\u09FF]/.test(name);
+  let renderName=name;
+  let fontFamily='"Segoe Script", "Brush Script MT", "Apple Chancery", cursive';
   if(isBangla){
-   try{
-    let link=document.getElementById('addon-galada-font');
-    if(!link){
-     link=document.createElement('link');
-     link.id='addon-galada-font';
-     link.rel='stylesheet';
-     link.href='https://fonts.googleapis.com/css2?family=Galada&display=swap';
-     link.crossOrigin='anonymous';
-     const loaded=new Promise((resolve,reject)=>{
-      link.onload=()=>resolve();
-      link.onerror=()=>reject(new Error('Galada stylesheet download failed'));
-     });
-     document.head.appendChild(link);
-     await loaded;
-    }else if(!link.sheet){
-     await new Promise((resolve,reject)=>{
-      link.addEventListener('load',resolve,{once:true});
-      link.addEventListener('error',()=>reject(new Error('Galada stylesheet failed')),{once:true});
-     });
-    }
-    await document.fonts.load('400 46px "Galada"',name);
-    if(!document.fonts.check('400 46px "Galada"',name)){
-     throw new Error('Galada font did not become available');
-    }
-   }catch(e){
-    console.error('Galada font could not be loaded; do not silently claim the selected font was applied.',e);
-    throw Error('বাংলা Signature Font (Galada) লোড হয়নি। ইন্টারনেট সংযোগ দিয়ে আবার চেষ্টা করুন।');
+   if(typeof window.loadKalpanaANSIFont!=='function'){
+    await new Promise((resolve,reject)=>{
+     const script=document.createElement('script');
+     script.src=new URL('./kalpana-font-embed.js',document.baseURI).href;
+     script.onload=resolve;
+     script.onerror=()=>reject(new Error('kalpana-font-embed.js পাওয়া যায়নি। ফাইলটি index.html-এর পাশে আপলোড করুন।'));
+     document.head.appendChild(script);
+    });
+   }
+   if(typeof window.loadKalpanaANSIFont!=='function') throw Error('Kalpana font loader পাওয়া যায়নি।');
+   fontFamily='"KalpanaANSI_Local"';
+   await window.loadKalpanaANSIFont();
+   const map={'অ':'A','আ':'Av','ই':'B','ঈ':'C','উ':'D','ঊ':'E','ঋ':'F','এ':'G','ঐ':'H','ও':'I','ঔ':'J','ক':'K','খ':'L','গ':'M','ঘ':'N','ঙ':'O','চ':'P','ছ':'Q','জ':'R','ঝ':'S','ঞ':'T','ট':'U','ঠ':'V','ড':'W','ঢ':'X','ণ':'Y','ত':'Z','থ':'_','দ':'`','ধ':'a','ন':'b','প':'c','ফ':'d','ব':'e','ভ':'f','ম':'g','য':'h','র':'i','ল':'j','শ':'k','ষ':'l','স':'m','হ':'n','ড়':'o','ঢ়':'p','য়':'q','ৎ':'r','া':'v','ি':'w','ী':'x','ু':'y','ূ':'~','ৃ':'…','ে':'‡','ৈ':'‰','ৗ':'Š','ং':'s','ঃ':'t','ঁ':'u','্':'&','০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9','।':'|',' ':' '};
+   const conjuncts={'ক্ষ':'¶','জ্ঞ':'Á','ত্র':'Î','ক্র':'µ','গ্র':'Mª','প্র':'cÖ','দ্ব':'Ø','ন্দ':'›`','ন্ত':'šÍ','ন্ন':'bœ','ম্প':'¤ú','ম্ব':'¤^','ষ্ট':'ó','স্ক':'¯‹','স্ত':'¯—','স্প':'¯ú','হ্ন':'ý','হ্ম':'þ','ল্ল':'jø','ক্ক':'°','ক্ত':'³','ঙ্গ':'½','ঞ্জ':'Ä','চ্চ':'”P','চ্ছ':'”Q','জ্জ':'¾','ট্ট':'Æ','ণ্ড':'Ê','ত্ত':'Ë','দ্ধ':'×','প্ন':'cœ','প্ল':'c­'};
+   let converted=name;
+   for(const from of Object.keys(conjuncts).sort((a,b)=>b.length-a.length)) converted=converted.split(from).join(conjuncts[from]);
+   renderName='';
+   for(const ch of converted){
+    if(Object.prototype.hasOwnProperty.call(map,ch)) renderName+=map[ch];
+    else if(/[A-Za-z0-9.,\-()]/.test(ch)) renderName+=ch;
+    else throw Error('এই বাংলা অক্ষরের Kalpana mapping এখনো যোগ করা হয়নি: '+ch);
    }
   }
-  const fontFamily=isBangla
-   ? '"Galada", "Noto Serif Bengali", "Siyam Rupali", serif'
-   : '"Segoe Script", "Brush Script MT", "Apple Chancery", cursive';
   const fontSize=isBangla?46:48;
-  const font=`400 ${fontSize}px ${fontFamily}`;
+  const font='400 '+fontSize+'px '+fontFamily;
   const measure=document.createElement('canvas').getContext('2d');measure.font=font;
-  const textWidth=Math.ceil(measure.measureText(name).width);
+  const textWidth=Math.ceil(measure.measureText(renderName).width);
   const logicalW=Math.max(360,Math.min(2000,textWidth+250));
   const logicalH=isBangla?150:148,dpr=3;
   const canvas=document.createElement('canvas');canvas.width=logicalW*dpr;canvas.height=logicalH*dpr;
   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
   ctx.fillStyle='#c5c5c5';ctx.fillRect(0,0,logicalW,logicalH);
-  ctx.fillStyle='#080808';ctx.strokeStyle='#080808';
-  ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
+  ctx.fillStyle='#080808';ctx.strokeStyle='#080808';ctx.lineCap='round';ctx.lineJoin='round';ctx.font=font;
   ctx.textAlign='center';ctx.textBaseline='middle';
   const cx=logicalW*0.59,cy=logicalH*0.48;
-  // Style 5 reference: lighter calligraphic name, large rounded opening loop,
-  // and a long shallow underline. No block-bold font and no baseline warp.
-  ctx.fillText(name,cx,cy,logicalW*0.68);
+  ctx.fillText(renderName,cx,cy,logicalW*0.68);
   const left=logicalW*0.08,right=Math.min(logicalW-18,cx+textWidth*0.46);
   ctx.beginPath();ctx.lineWidth=isBangla?2.5:2.2;
   ctx.moveTo(left+logicalW*0.12,cy+fontSize*0.42);
-  ctx.bezierCurveTo(left-logicalW*0.02,cy+fontSize*0.10,
-                    left+logicalW*0.01,cy-fontSize*0.72,
-                    left+logicalW*0.22,cy-fontSize*0.74);
-  ctx.bezierCurveTo(left+logicalW*0.38,cy-fontSize*0.74,
-                    left+logicalW*0.38,cy-fontSize*0.30,
-                    left+logicalW*0.18,cy+fontSize*0.02);
-  ctx.stroke();
-  ctx.beginPath();ctx.lineWidth=isBangla?2.2:2;
-  ctx.moveTo(left+logicalW*0.23,cy+fontSize*0.58);
-  ctx.bezierCurveTo(logicalW*0.40,cy+fontSize*1.02,
-                    logicalW*0.70,cy+fontSize*0.98,right,cy+fontSize*0.48);
-  ctx.stroke();
+  ctx.bezierCurveTo(left-logicalW*0.02,cy+fontSize*0.10,left+logicalW*0.01,cy-fontSize*0.72,left+logicalW*0.22,cy-fontSize*0.74);
+  ctx.bezierCurveTo(left+logicalW*0.38,cy-fontSize*0.74,left+logicalW*0.38,cy+fontSize*0.30,left+logicalW*0.18,cy+fontSize*0.02);ctx.stroke();
+  ctx.beginPath();ctx.lineWidth=isBangla?2.2:2;ctx.moveTo(left+logicalW*0.23,cy+fontSize*0.58);
+  ctx.bezierCurveTo(logicalW*0.40,cy+fontSize*1.02,logicalW*0.70,cy+fontSize*0.98,right,cy+fontSize*0.48);ctx.stroke();
   const dataUrl=canvas.toDataURL('image/png');
-  const raw=JSON.parse(by('addon-json').value||'{}');
-  delete raw.fingerIMG;delete raw.fingerprintIMG;
-  raw.signIMG=dataUrl;raw.markType='signature';
-  raw.signImageSource='generated-style-5-galada-calligraphy';
-  by('addon-json').value=JSON.stringify(raw,null,2);
-  updateInlineAssetPreview(raw);
+  const raw=JSON.parse(by('addon-json').value||'{}');delete raw.fingerIMG;delete raw.fingerprintIMG;
+  raw.signIMG=dataUrl;raw.markType='signature';raw.signImageSource=isBangla?'generated-kalpana-ansi-local':'generated-style-5-calligraphy';
+  by('addon-json').value=JSON.stringify(raw,null,2);updateInlineAssetPreview(raw);
   if(doc){try{doc.querySelectorAll(mediaSelectors.signature).forEach(el=>{if(el.tagName==='IMG')el.setAttribute('src',dataUrl)});render();}catch(e){console.warn('Could not refresh Style 5 signature in HTML:',e);}}
-  msg(`${isBangla?'বাংলা':'English'} Style 5 Calligraphy Signature তৈরি হয়েছে। Galada font, ধূসর Background ও rounded loop ব্যবহার করা হয়েছে।`);
+  msg((isBangla?'বাংলা Kalpana ANSI':'English')+' Style 5 Signature তৈরি হয়েছে। Local font ও ধূসর Background ব্যবহার করা হয়েছে।');
  }catch(e){msg('Style 5 Signature তৈরি হয়নি: '+e.message)}
 }
 
