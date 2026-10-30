@@ -439,3 +439,37 @@ $('downloadImage').onclick=async()=>{
  `;
  (document.head||document.documentElement).appendChild(style);
 })();
+
+
+/* INDEX CSS OVERRIDE — mobile document must scroll; do not keep #work in the
+   fixed, absolute viewport workspace defined by the embedded index.html CSS. */
+(function(){
+ const id='index-mobile-document-flow-override';
+ if(document.getElementById(id)) return;
+ const style=document.createElement('style');
+ style.id=id;
+ style.textContent=`
+ @media screen and (max-width:760px){
+  html,body{
+   height:auto!important;min-height:100%!important;max-height:none!important;
+   overflow-x:hidden!important;overflow-y:auto!important;
+   -webkit-overflow-scrolling:touch!important;
+  }
+  body{display:block!important;position:relative!important}
+  body>header{position:relative!important;inset:auto!important;height:auto!important;max-height:none!important;overflow:visible!important}
+  body>main{
+   position:relative!important;inset:auto!important;display:block!important;
+   width:100%!important;height:auto!important;min-height:0!important;
+   max-height:none!important;flex:none!important;overflow:visible!important;
+  }
+  body>main>#work,#work{
+   position:relative!important;inset:auto!important;display:block!important;
+   width:100%!important;height:auto!important;min-height:0!important;
+   max-height:none!important;overflow:visible!important;overflow-y:visible!important;
+  }
+  #stage-holder{position:relative!important;height:auto!important;max-width:100%!important;overflow:visible!important}
+  body>main>aside{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ }
+ `;
+ (document.head||document.documentElement).appendChild(style);
+})();
