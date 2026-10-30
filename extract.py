@@ -323,8 +323,8 @@ def parse(doc):
     d['motherDocumentNumber']=value_after('Mother Document Number')
     d['spouseDocumentNumber']=value_after('Spouse Document Number')
     d['bloodGroup']=value_after('Blood Group')
-    # The user requests the form-generation date, not the source document issue date.
-    d['issueDate']=''  # Browser supplies today's local date at display time.
+    # Preserve the issue date printed on the source NID PDF. Do not substitute today's date.
+    d['issueDate']=format_dob(value_after('Issue Date'))
     d['mobile']=value_after('Mobile')
 
     perm=address_block(lines,'Permanent Address')
