@@ -374,3 +374,68 @@ $('downloadImage').onclick=async()=>{
  `;
  (document.head||document.documentElement).appendChild(style);
 })();
+
+
+/* Definitive mobile fix: the base index.html leaves #work absolutely positioned
+   inside a height-clipped main. Release that positioning so the form expands
+   naturally and the document, not a fixed viewport panel, owns vertical scroll. */
+(function(){
+ const id='mobile-work-flow-layout-fix-v2';
+ if(document.getElementById(id)) return;
+ const style=document.createElement('style');
+ style.id=id;
+ style.textContent=`
+ @media(max-width:800px){
+   html,body{
+     height:auto!important;
+     min-height:100%!important;
+     overflow-x:hidden!important;
+     overflow-y:auto!important;
+   }
+   body{
+     display:flex!important;
+     flex-direction:column!important;
+     align-items:stretch!important;
+   }
+   body>main{
+     position:relative!important;
+     display:block!important;
+     flex:0 0 auto!important;
+     width:100%!important;
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     overflow:visible!important;
+   }
+   body>main>#work{
+     position:relative!important;
+     inset:auto!important;
+     display:flex!important;
+     flex-direction:column!important;
+     align-items:stretch!important;
+     justify-content:flex-start!important;
+     width:100%!important;
+     height:auto!important;
+     min-height:0!important;
+     max-height:none!important;
+     margin:0!important;
+     overflow:visible!important;
+     padding:10px!important;
+   }
+   body>main>#work>#pdf-addon{
+     position:relative!important;
+     flex:0 0 auto!important;
+     width:100%!important;
+     max-width:100%!important;
+   }
+   body>main>#work>#stage-holder{
+     position:relative!important;
+     flex:0 0 auto!important;
+     height:auto!important;
+     min-height:0!important;
+     overflow:visible!important;
+   }
+ }
+ `;
+ (document.head||document.documentElement).appendChild(style);
+})();
