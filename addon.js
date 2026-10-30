@@ -143,9 +143,17 @@ ui.innerHTML=`
 </details>`;
 const staleAssetPreview=document.querySelectorAll('#extracted-asset-preview,.extracted-asset-preview,.asset-preview-grid,[data-role="extracted-asset-preview"]');
 staleAssetPreview.forEach(el=>el.remove());
-const workArea=document.getElementById('work');
-const stageHolder=document.getElementById('stage-holder');
-if(workArea){workArea.insertBefore(ui,stageHolder||workArea.firstChild)}else{document.querySelector('main>aside').append(ui)}
+// Keep the complete PDF/JSON application inside the Tools Drawer.
+const toolsSidebar=document.querySelector('main>aside');
+if(toolsSidebar){
+ ui.dataset.editorToolsPanel='true';
+ toolsSidebar.append(ui);
+}else{
+ // Safe fallback for older editor layouts that do not provide a sidebar.
+ const workArea=document.getElementById('work');
+ const stageHolder=document.getElementById('stage-holder');
+ if(workArea) workArea.insertBefore(ui,stageHolder||workArea.firstChild);
+}
 // Keep advanced JSON/field-mapping controls in the editor sidebar instead of the main form.
 const toolsSidebar=document.querySelector('main>aside, #sidebar, .sidebar, [role="complementary"]');
 const advancedTools=by('addon-advanced');
