@@ -52,6 +52,41 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
+        if parsed.path == '/api/pdf/health':
+            # Real runtime check: launch the installed Chromium binary and render
+            # a tiny PDF. A plain /health response does not prove Chromium works.
+            try:
+                from playwright.sync_api import sync_playwright
+                with sync_playwright() as playwright:
+                    browser = playwright.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-dev-shm-usage']
+                    )
+                    try:
+                        page = browser.new_page()
+                        page.set_content(
+                            '<!doctype html><html><body><h1>Chromium PDF test</h1></body></html>',
+                            wait_until='domcontentloaded',
+                            timeout=10000
+                        )
+                        pdf_data = page.pdf(print_background=True, timeout=10000)
+                        if not pdf_data.startswith(b'%PDF-'):
+                            raise RuntimeError('Chromium returned invalid PDF bytes')
+                        return json_reply(self, 200, {
+                            'ok': True,
+                            'chromium': 'running',
+                            'version': browser.version,
+                            'pdf_generated': True,
+                            'pdf_bytes': len(pdf_data)
+                        })
+                    finally:
+                        browser.close()
+            except Exception as exc:
+                return json_reply(self, 500, {
+                    'ok': False,
+                    'chromium': 'failed',
+                    'error': str(exc)[:1500]
+                })
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -179,7 +214,7 @@ class Handler(SimpleHTTPRequestHandler):
                         # Resolve relative image/font/CSS URLs from the editor origin.
                         base_tag = '<base href="' + origin + '/">'
                         if re.search(r'<head[^>]*>', document_html, flags=re.I):
-                            document_html = re.sub(r'(<head[^>]*>)', r'\\1' + base_tag, document_html, count=1, flags=re.I)
+                            document_html = re.sub(r'(<head[^>]*>)', r'\1' + base_tag, document_html, count=1, flags=re.I)
                         # Render's reverse proxy can close long-running requests.
                         # Do not wait for networkidle: analytics/CDN/font connections can
                         # keep it pending until the proxy reports "Failed to fetch".
