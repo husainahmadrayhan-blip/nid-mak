@@ -873,7 +873,7 @@ async function createNameMarkFromInput(){
 }
 
 
-function createFlowingSignatureFromInput(){
+async function createFlowingSignatureFromInput(){
  try{
   if(by('addon-sign-type').value!=='signature') throw Error('Name Mark তৈরি করতে Signature নির্বাচন করুন।');
   const name=String(by('addon-name-mark').value||'').trim().replace(/\s+/g,' ');
