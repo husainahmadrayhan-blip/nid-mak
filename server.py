@@ -1,7 +1,7 @@
 from http.server import HTTPServer, ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid
+import os, json, threading, webbrowser, base64, zipfile, io, re, shutil, time, uuid, traceback
 ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 PROJECTS_DIR = ROOT / "projects"
@@ -269,6 +269,8 @@ class Handler(SimpleHTTPRequestHandler):
                 PDF_PREVIEWS[token] = (now + 600, pdf_data)
                 return json_reply(self, 200, {'ok': True, 'url': '/api/pdf/view?id=' + token})
             except Exception as exc:
+                print('[PDF_CREATE] Unhandled PDF generation failure:', repr(exc), flush=True)
+                traceback.print_exc()
                 return json_reply(self, 500, {'ok': False, 'error': 'PDF তৈরি ব্যর্থ: ' + str(exc)})
         if parsed.path == '/api/projects/save':
             name = clean_project_name(parse_qs(parsed.query).get('name', [''])[0])
