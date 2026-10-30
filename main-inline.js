@@ -324,41 +324,51 @@ $('downloadImage').onclick=async()=>{
 })();
 
 
-/* Late-loaded Format Auto Fill relocation.
-   The default ZIP/project renderer injects this section after the initial drawer setup,
-   so the earlier one-time DOM scan can run too soon. Watch #work and move the actual
-   section once its heading, source textarea and both action buttons exist. */
+/* Exact-ID Format Auto Fill relocation.
+   The live DOM exposes stable IDs, so do not infer the panel from translated text. */
 (function(){
- if(window.__formatAutoFillRelocatorInstalled) return;
- window.__formatAutoFillRelocatorInstalled=true;
- const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
- const findAndMove=()=>{
-   const actions=document.getElementById('allEditorActions');
+ if(window.__formatAutoFillExactRelocator) return;
+ window.__formatAutoFillExactRelocator=true;
+
+ function relocateFormatPanel(){
    const work=document.getElementById('work');
-   if(!actions||!work) return false;
-   const sections=[...work.querySelectorAll('section')];
-   const target=sections.find(section=>{
-     const heading=[...section.querySelectorAll('h1,h2,h3,h4,h5,h6')].some(el=>
-       /format.*html.*autofill/.test(normalize(el.textContent)));
-     const source=section.querySelector('#format-source,textarea');
-     const buttons=[...section.querySelectorAll('button,input[type="button"],input[type="submit"]')];
-     const hasParse=buttons.some(el=>/normalparse/.test(normalize(el.innerText||el.textContent||el.value)));
-     const hasApply=buttons.some(el=>/applytohtml/.test(normalize(el.innerText||el.textContent||el.value)));
-     return heading&&source&&hasParse&&hasApply;
-   });
-   if(!target||actions.contains(target)) return false;
-   target.dataset.movedFormatTools='true';
-   actions.appendChild(target);
+   const source=document.getElementById('format-source');
+   if(!work||!source) return false;
+
+   // In the live page, #format-source belongs to the dedicated Format section.
+   const section=source.closest('section');
+   if(!section||!work.contains(section)) return false;
+   if(!section.querySelector('#format-parse')||!section.querySelector('#format-apply')) return false;
+
+   const aside=document.querySelector('main>aside');
+   if(!aside) return false;
+
+   let drawer=document.getElementById('allEditorTools');
+   if(!drawer){
+     drawer=document.createElement('section');
+     drawer.id='allEditorTools';
+     drawer.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div>';
+     aside.insertBefore(drawer,aside.firstChild);
+   }
+   let actions=drawer.querySelector('#allEditorActions');
+   if(!actions){
+     actions=document.createElement('div');
+     actions.id='allEditorActions';
+     drawer.appendChild(actions);
+   }
+
+   if(!actions.contains(section)){
+     section.dataset.movedFormatTools='true';
+     actions.appendChild(section);
+   }
    return true;
- };
- findAndMove();
- const work=document.getElementById('work');
- if(work){
-   const observer=new MutationObserver(()=>findAndMove());
-   observer.observe(work,{childList:true,subtree:true});
  }
- // Also retry after the default project/ZIP has finished its asynchronous load.
- window.addEventListener('load',findAndMove,{once:true});
- setTimeout(findAndMove,500);
- setTimeout(findAndMove,1500);
+
+ // Run now and observe the whole document because the ZIP renderer may replace
+ // #work or inject the Format section after this script has initialized.
+ relocateFormatPanel();
+ const observer=new MutationObserver(()=>relocateFormatPanel());
+ observer.observe(document.documentElement,{childList:true,subtree:true});
+ window.addEventListener('DOMContentLoaded',relocateFormatPanel,{once:true});
+ window.addEventListener('load',relocateFormatPanel,{once:true});
 })();
