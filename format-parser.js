@@ -2,7 +2,11 @@
 const F=[['nameBn','নাম (বাংলা)'],['nameEn','Name (English)'],['dob','জন্ম তারিখ'],['fatherName','পিতার নাম (বাংলা)'],['motherName','মাতার নাম (বাংলা)'],['address','ঠিকানা (বাংলা)'],['birthPlace','জন্মস্থান']];
 const root=document.createElement('section');root.style.cssText='padding:12px;background:#162c42;border:1px solid #48617a;border-radius:10px;margin:12px 0';
 root.innerHTML='<h3 style="margin:0 0 8px">Format → HTML Auto Fill (৭টি ঘর)</h3><textarea id="format-source" rows="9" style="width:100%;box-sizing:border-box;background:#0c1929;color:white;border:1px solid #52627b;border-radius:6px;padding:8px" placeholder="বাংলা/ইংরেজি ফরম্যাট এখানে পেস্ট করুন"></textarea><div style="display:flex;gap:7px;flex-wrap:wrap;margin:8px 0"><button type="button" id="format-parse">Normal Parse</button><button type="button" id="format-fill">Apply to HTML</button></div><div id="format-status" style="font-size:12px;margin:8px 0"></div><div id="format-fields"></div>';
-const addon=document.getElementById('pdf-addon');if(addon)addon.parentNode.insertBefore(root,addon);else document.querySelector('aside')?.append(root);
+root.id='format-auto-fill-tools';
+const addon=document.getElementById('pdf-addon');
+const toolsDrawer=document.querySelector('main>aside');
+if(toolsDrawer){if(addon&&addon.parentElement===toolsDrawer)toolsDrawer.insertBefore(root,addon);else toolsDrawer.append(root);}
+else if(addon)addon.parentNode.insertBefore(root,addon);
 const el=id=>document.getElementById(id), status=s=>el('format-status').textContent=s;
 const fields=el('format-fields');for(const [k,label] of F){const wrapper=document.createElement('label');wrapper.style.cssText='display:block;margin:7px 0;font-size:12px';wrapper.textContent=label;const inp=document.createElement('textarea');inp.rows=k==='address'?3:1;inp.id='format-'+k;inp.style.cssText='display:block;width:100%;box-sizing:border-box;margin-top:3px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px;padding:6px';wrapper.append(inp);fields.append(wrapper)}
 const clean=s=>String(s||'').replace(/^[\s:：\-–—]+/,'').trim();
