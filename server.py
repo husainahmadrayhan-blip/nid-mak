@@ -54,24 +54,24 @@ class Handler(SimpleHTTPRequestHandler):
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
         if parsed.path == '/api/pdf/health':
             service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
-            token = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
-            if not service_url or not token:
+            password = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
+            if not service_url or not password:
                 return json_reply(self, 503, {'ok': False, 'error': 'Set PDF_SERVICE_URL and PDF_SERVICE_TOKEN in Render environment'})
             try:
                 from urllib.request import urlopen, Request
-                with urlopen(service_url + '/health', timeout=15) as response:
+                import base64
+                credentials = base64.b64encode(('nidmak:' + password).encode('utf-8')).decode('ascii')
+                request = Request(service_url + '/health', headers={'Authorization': 'Basic ' + credentials})
+                with urlopen(request, timeout=15) as response:
                     status = response.status
                     data = json.loads(response.read().decode('utf-8'))
-                editor_token_fingerprint = hashlib.sha256(token.encode('utf-8')).hexdigest()[:12] if token else None
-                return json_reply(self, 200 if status == 200 and data.get('ok') else 502, {
-                    'ok': bool(status == 200 and data.get('ok')),
-                    'service': 'separate_playwright_pdf',
-                    'editor_token_configured': bool(token),
-                    'editor_token_fingerprint': editor_token_fingerprint,
+                return json_reply(self, 200 if status == 200 and data.get('status') == 'up' else 502, {
+                    'ok': bool(status == 200 and data.get('status') == 'up'),
+                    'service': 'gotenberg',
                     'renderer': data
                 })
             except Exception as exc:
-                return json_reply(self, 502, {'ok': False, 'service': 'separate_playwright_pdf', 'error': str(exc)[:1200]})
+                return json_reply(self, 502, {'ok': False, 'service': 'gotenberg', 'error': str(exc)[:1200]})
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -195,27 +195,65 @@ class Handler(SimpleHTTPRequestHandler):
                     })
                 from urllib.request import Request, urlopen
                 from urllib.error import HTTPError, URLError
+                import base64
+                import mimetypes
+                import secrets
+                from urllib.parse import urljoin
                 forwarded_proto = self.headers.get('X-Forwarded-Proto', 'https').split(',')[0].strip()
                 host = self.headers.get('Host', '127.0.0.1')
-                origin = forwarded_proto + '://' + host
-                request_body = json.dumps({'html': document_html, 'base_url': origin}).encode('utf-8')
+                origin = forwarded_proto + '://' + host + '/'
+                # Resolve relative asset URLs against the editor origin. Gotenberg's
+                # HTML upload endpoint runs in a separate container, so relative
+                # paths must be absolute URLs to remain reachable.
+                def absolute_ref(match):
+                    attr, quote, value = match.group(1), match.group(2), match.group(3)
+                    value = value.strip()
+                    if not value or value.startswith(('data:', 'http://', 'https://', '//', '#', 'blob:', 'javascript:', 'mailto:')):
+                        return match.group(0)
+                    return attr + quote + urljoin(origin, value) + quote
+                document_html = re.sub(r'\\b(src|href)\\s*=\\s*([\"\\\'])(.*?)\\2', absolute_ref, document_html, flags=re.I)
+                document_html = re.sub(
+                    r'url\\(\\s*([\"\\\']?)(?!data:|https?:|//|#)([^)\"\\\']+)\\1\\s*\\)',
+                    lambda m: 'url("' + urljoin(origin, m.group(2).strip()) + '")',
+                    document_html, flags=re.I
+                )
+                boundary = '----NidMakGotenberg' + secrets.token_hex(16)
+                parts = []
+                def add_field(name, value):
+                    parts.append(('--' + boundary + '\\r\\n').encode())
+                    parts.append(('Content-Disposition: form-data; name="' + name + '"\\r\\n\\r\\n').encode())
+                    parts.append(str(value).encode('utf-8'))
+                    parts.append(b'\\r\\n')
+                parts.append(('--' + boundary + '\\r\\n').encode())
+                parts.append(b'Content-Disposition: form-data; name="files"; filename="index.html"\\r\\n')
+                parts.append(b'Content-Type: text/html; charset=utf-8\\r\\n\\r\\n')
+                parts.append(document_html.encode('utf-8'))
+                parts.append(b'\\r\\n')
+                add_field('printBackground', 'true')
+                add_field('preferCssPageSize', 'true')
+                add_field('emulatedMediaType', 'screen')
+                add_field('waitDelay', '1s')
+                parts.append(('--' + boundary + '--\\r\\n').encode())
+                request_body = b''.join(parts)
+                credentials = base64.b64encode(('nidmak:' + token).encode('utf-8')).decode('ascii')
                 request = Request(
-                    service_url + '/render',
+                    service_url + '/forms/chromium/convert/html',
                     data=request_body,
                     headers={
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Content-Type': 'multipart/form-data; boundary=' + boundary,
+                        'Authorization': 'Basic ' + credentials,
+                        'Gotenberg-Output-Filename': 'nid-mak-preview'
                     },
                     method='POST'
                 )
                 try:
-                    with urlopen(request, timeout=120) as response:
+                    with urlopen(request, timeout=150) as response:
                         pdf_data = response.read()
                 except HTTPError as exc:
                     detail = exc.read(4000).decode('utf-8', errors='replace')
-                    raise RuntimeError('PDF renderer returned HTTP ' + str(exc.code) + ': ' + detail)
+                    raise RuntimeError('Gotenberg returned HTTP ' + str(exc.code) + ': ' + detail)
                 except URLError as exc:
-                    raise RuntimeError('Could not connect to PDF renderer: ' + str(exc.reason))
+                    raise RuntimeError('Could not connect to Gotenberg: ' + str(exc.reason))
                 if not pdf_data.startswith(b'%PDF-'):
                     raise RuntimeError('PDF renderer returned invalid PDF bytes')
                 now = time.time()
