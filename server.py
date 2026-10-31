@@ -196,7 +196,6 @@ class Handler(SimpleHTTPRequestHandler):
                 from urllib.request import Request, urlopen
                 from urllib.error import HTTPError, URLError
                 import base64
-                import mimetypes
                 import secrets
                 from urllib.parse import urljoin
                 forwarded_proto = self.headers.get('X-Forwarded-Proto', 'https').split(',')[0].strip()
@@ -220,20 +219,20 @@ class Handler(SimpleHTTPRequestHandler):
                 boundary = '----NidMakGotenberg' + secrets.token_hex(16)
                 parts = []
                 def add_field(name, value):
-                    parts.append(('--' + boundary + '\\r\\n').encode())
-                    parts.append(('Content-Disposition: form-data; name="' + name + '"\\r\\n\\r\\n').encode())
+                    parts.append(('--' + boundary + '\r\n').encode())
+                    parts.append(('Content-Disposition: form-data; name="' + name + '"\r\n\r\n').encode())
                     parts.append(str(value).encode('utf-8'))
-                    parts.append(b'\\r\\n')
-                parts.append(('--' + boundary + '\\r\\n').encode())
-                parts.append(b'Content-Disposition: form-data; name="files"; filename="index.html"\\r\\n')
-                parts.append(b'Content-Type: text/html; charset=utf-8\\r\\n\\r\\n')
+                    parts.append(b'\r\n')
+                parts.append(('--' + boundary + '\r\n').encode())
+                parts.append(b'Content-Disposition: form-data; name="files"; filename="index.html"\r\n')
+                parts.append(b'Content-Type: text/html; charset=utf-8\r\n\r\n')
                 parts.append(document_html.encode('utf-8'))
-                parts.append(b'\\r\\n')
+                parts.append(b'\r\n')
                 add_field('printBackground', 'true')
                 add_field('preferCssPageSize', 'true')
                 add_field('emulatedMediaType', 'screen')
                 add_field('waitDelay', '1s')
-                parts.append(('--' + boundary + '--\\r\\n').encode())
+                parts.append(('--' + boundary + '--\r\n').encode())
                 request_body = b''.join(parts)
                 credentials = base64.b64encode(('nidmak:' + token).encode('utf-8')).decode('ascii')
                 request = Request(
