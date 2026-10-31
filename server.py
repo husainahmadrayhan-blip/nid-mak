@@ -151,7 +151,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if provider not in ('gemini', 'grok') or not raw: raise ValueError('AI provider and pasted format are required')
                 settings = load_ai_settings(); key = settings.get(provider + '_key', '')
                 if not key: raise ValueError('এই Provider-এর API Key আগে Save করুন')
-                prompt = "Extract only explicitly stated values from this text. Return valid JSON only with keys nameBn, nameEn, dob, fatherName, motherName, address, birthPlace. Use empty string for missing fields. Do not infer or invent values. Preserve Bengali text.\n\nTEXT:\n" + raw
+                prompt = "Extract only explicitly stated values. Return JSON keys nameBn, nameEn, dob, fatherName, motherName, address, birthPlace. nameBn and nameEn are applicant name in Bangla and English. fatherName and motherName must be Bengali only, never English. Format dob as DD Mon YYYY (example 22 Mar 2022), regardless of source date format. address must contain the present/current address in this format when source details exist: ঠিকানা: গ্রাম/রাস্তা : [village], ডাকঘর: [post office]- [postcode], [upazila], [district]. If only permanent address is supplied, use its details to construct the address. birthPlace must contain only the district name, not village, post office, upazila or division. Extract the district only when explicitly identifiable; otherwise return empty string. Do not invent missing values. Preserve Bengali text.\n\nTEXT:\n" + raw
                 from urllib.request import Request, urlopen
                 if provider == 'gemini':
                     model = 'gemini-3-flash-preview'
