@@ -39,8 +39,18 @@ function enforceTargetFontSizes(){if(!doc)return;for(const el of doc.querySelect
 window.applySavedLayoutToElement=apply;
 function restore(){if(!doc)return;normalizeRoles();const data=getSaved();for(const el of doc.body.querySelectorAll('*')){const role=roleOf(el);if(role&&data[roleKey(role)]){for(const [prop,v] of Object.entries(data[roleKey(role)]))if(props.includes(prop))el.style[prop]=v;continue;}apply(el)}enforceTargetFontSizes();notice('সেভ করা Fingerprint/Signature Position প্রয়োগ হয়েছে ✓')}
 window.flushPermanentLayout=save;
-const button=document.createElement('button');button.type='button';button.id='layout-save';button.textContent='📌 Save Positions Permanently';button.onclick=save;document.querySelector('header').append(button);
-const indicator=document.createElement('span');indicator.id='layout-status';indicator.style.cssText='font-size:12px;color:#b9dfc6';indicator.textContent='Drag করে পজিশন ঠিক করুন—Auto Save চালু';document.querySelector('header').append(indicator);
+const button=document.createElement('button');button.type='button';button.id='layout-save';button.textContent='📌 Save Positions Permanently';button.onclick=save;
+const indicator=document.createElement('span');indicator.id='layout-status';indicator.style.cssText='display:block;font-size:12px;color:#71839a;margin:8px 0';indicator.textContent='Drag করে পজিশন ঠিক করুন—Auto Save চালু';
+// Keep the permanent-position control inside the hamburger Tools Drawer.
+// main-inline.js creates #allEditorActions; if it is not ready yet, use the
+// header temporarily and relocate it once the drawer is available.
+const toolsActions=document.getElementById('allEditorActions');
+if(toolsActions){toolsActions.append(button,indicator)}else{
+ const header=document.querySelector('header');
+ if(header)header.append(button,indicator);
+ const moveToDrawer=()=>{const target=document.getElementById('allEditorActions');if(target){target.append(button,indicator);return true}return false};
+ document.addEventListener('DOMContentLoaded',moveToDrawer,{once:true});
+}
 const oldLoad=load;load=async function(files){await oldLoad(files);restore();if(doc)render()};
 const oldRender=render;render=function(...args){if(doc)restore();return oldRender(...args)};
 let timer;function soon(){clearTimeout(timer);timer=setTimeout(save,450)}
