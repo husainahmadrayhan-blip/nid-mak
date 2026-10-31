@@ -33,3 +33,14 @@ FACE DETECTION REPAIR (v5)
 - v5 checks that cv2 actually provides CascadeClassifier and the Haar cascade XML file. A successful `import cv2` alone is not enough.
 - If `/api/face` reports `cv2 has no attribute CascadeClassifier`, close the editor and run FIX-OPENCV-WINDOWS.bat. It removes conflicting OpenCV pip variants and reinstalls opencv-python-headless.
 - If it still fails, check that your project does not contain a file or folder named cv2.py or cv2, which can shadow the real library.
+
+
+DIRECT CHROME PRINT MODE:
+- PDF/Print button opens the native Chrome print dialog directly.
+- Choose Save as PDF in Chrome to create a PDF file.
+- Docker and Gotenberg are not required for printing.
+- For correct output, enable Background graphics and set Margins to None in Chrome print settings.
+
+
+CHROME PRINT ONLY UPDATE:
+The Print button uses the browser native print dialog. Local print does not call /api/pdf/create and does not require a Gotenberg container. RUN-NIDMAK-WITH-TUNNEL.bat starts only the editor and Cloudflare Tunnel; it does not start Docker.

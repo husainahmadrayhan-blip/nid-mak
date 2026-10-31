@@ -116,6 +116,74 @@ ui.innerHTML=`
 #addon-sidebar-tools #addon-advanced summary{font-size:12px}
 #addon-sidebar-tools #addon-json{min-height:110px;font-size:11px}
 #addon-sidebar-tools .app-actions button{font-size:11px;padding:7px 8px;min-height:32px}
+
+/* Reference screenshot UI refresh: PDF Upload through Download Card */
+#pdf-addon{
+  width:100%;max-width:100%;margin:0 0 18px;padding:14px 12px 16px;
+  color:#172d50;border:0;border-radius:0;
+  background:radial-gradient(ellipse at 8% 5%,rgba(90,220,244,.24),transparent 30%),radial-gradient(ellipse at 94% 26%,rgba(255,174,215,.22),transparent 34%),linear-gradient(145deg,#e5f8ff 0%,#f3f7ff 48%,#e9faff 100%);
+  font-family:system-ui,"Noto Sans Bengali",Arial,sans-serif
+}
+#pdf-addon .app-head{display:none}
+#pdf-addon .app-pdf-upload{margin:0 0 9px;padding:12px 14px;background:rgba(255,255,255,.94);border:1px solid #d8eafa;border-radius:22px;box-shadow:0 5px 18px rgba(41,111,170,.12)}
+#pdf-addon .app-pdf-upload h4{position:relative;margin:0 0 9px;padding:4px 0 4px 54px;background:transparent;border:0;color:#153c78;font-size:17px;line-height:1.25}
+#pdf-addon .app-pdf-upload h4:before{content:"⇧";position:absolute;left:0;top:-2px;width:44px;height:44px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(145deg,#0878ff,#06a8ec);color:#fff;font-size:25px;box-shadow:0 4px 10px #1787e955}
+#pdf-addon .app-pdf-row{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;min-width:0}
+#pdf-addon .app-pdf-row label{display:block;text-align:center;padding:8px 8px 0;border:1.5px dashed #8fc6e7;border-bottom:0;border-radius:15px 15px 0 0;background:linear-gradient(135deg,#f9fdff,#f2faff);font-size:14px;font-weight:700;color:#183b69}
+#pdf-addon .app-pdf-row label:before{content:"☁";display:block;margin:0 auto 3px;color:#0878ee;font-size:29px;line-height:1.1}
+#pdf-addon .app-pdf-row input[type=file]{width:100%;max-width:100%;min-height:48px;padding:7px 12px;border:1.5px dashed #8fc6e7;border-top:0;border-radius:0 0 15px 15px;background:#f7fcff;color:#314a68;font-size:13px}
+#pdf-addon .app-top-uploads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 10px}
+#pdf-addon .app-upload-tile{min-width:0;padding:0;border:0;background:transparent;box-shadow:none;gap:7px}
+#pdf-addon .app-upload-tile>label{min-height:75px;display:grid;grid-template-columns:52px minmax(0,1fr) 16px;align-content:center;align-items:center;column-gap:9px;padding:9px 11px;border:1px solid #d8ebf8;border-radius:19px;background:rgba(255,255,255,.88);box-shadow:0 4px 14px rgba(47,121,178,.10);font-size:14px;color:#153969}
+#pdf-addon .app-upload-tile>label .upload-icon{grid-row:1 / span 2;width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#0879ff,#0870dd);font-size:24px;color:#fff}
+#pdf-addon .app-upload-tile:nth-child(2)>label .upload-icon{background:linear-gradient(145deg,#10b98d,#079d83)}
+#pdf-addon .app-upload-tile>label>span:nth-child(2){font-size:14px;font-weight:800;white-space:nowrap}
+#pdf-addon .app-upload-tile>label>span:nth-child(2):after{content:"›";float:right;font-size:22px;line-height:16px}
+#pdf-addon .app-upload-tile>label small{grid-column:2 / 4;width:auto;margin:0;padding:0;font-size:10px;line-height:1.3;color:#687f9a}
+#pdf-addon .upload-drop{min-height:150px;padding:10px 6px;gap:5px;border:1.5px dashed #9bc9e7;border-radius:16px;background:rgba(255,255,255,.78);box-shadow:inset 0 0 0 1px rgba(255,255,255,.8);text-align:center}
+#pdf-addon .app-upload-tile:nth-child(2) .upload-drop{border-color:#e7b6d4;background:linear-gradient(145deg,rgba(255,249,253,.96),rgba(255,255,255,.86))}
+#pdf-addon .upload-cloud{width:46px;height:42px;border-radius:50%;font-size:27px;background:linear-gradient(145deg,#0878ed,#05a3f2);box-shadow:0 3px 9px #1385eb44}
+#pdf-addon .app-upload-tile:nth-child(2) .upload-cloud{background:linear-gradient(145deg,#8c39e8,#bd4ce7)}
+#pdf-addon .upload-drop b{font-size:12px;color:#18365f}
+#pdf-addon .upload-drop small{font-size:10px;color:#7c8fa5}
+#pdf-addon .upload-drop select{font-size:11px;min-height:30px;padding:4px 8px;border-radius:9px;background:#fff}
+#pdf-addon .app-section{padding:10px 12px;margin:9px 0;border:1px solid rgba(255,255,255,.95);border-radius:20px;background:rgba(255,255,255,.94);box-shadow:0 5px 15px rgba(44,112,168,.10)}
+#pdf-addon .app-section h4{display:flex;align-items:center;gap:10px;min-height:43px;margin:0 0 9px;padding:7px 11px;border:0;border-radius:13px;font-size:17px;font-weight:800;color:#16365f}
+#pdf-addon .app-section h4 span{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#087cf4,#0ba8ed);color:white;font-size:20px}
+#pdf-addon #addon-basic-fields{--section-bg:linear-gradient(90deg,#dff2ff,#e9f8ff)}
+#pdf-addon .app-section:has(#addon-basic-fields) h4{background:linear-gradient(90deg,#d9efff,#e8f7ff)}
+#pdf-addon .app-section:has(#addon-personal-fields) h4{background:linear-gradient(90deg,#ffd9ed,#ffeaf5)}
+#pdf-addon .app-section:has(#addon-personal-fields) h4 span{background:linear-gradient(145deg,#f04488,#e51e68)}
+#pdf-addon .app-section:has(#addon-family-fields) h4{background:linear-gradient(90deg,#d5faed,#e5fff6)}
+#pdf-addon .app-section:has(#addon-family-fields) h4 span{background:linear-gradient(145deg,#10b98d,#079c7d)}
+#pdf-addon .app-section:has(#addon-address-fields) h4{background:linear-gradient(90deg,#fff0c9,#fff8e3)}
+#pdf-addon .app-section:has(#addon-address-fields) h4 span{background:linear-gradient(145deg,#f4a51c,#e88b0c)}
+#pdf-addon .app-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 14px}
+#pdf-addon .app-field{gap:4px;font-size:13px;font-weight:500;color:#253b59}
+#pdf-addon .app-field input,#pdf-addon .app-field select{width:100%;min-height:48px;height:48px;padding:9px 12px;border:1.5px solid #d0dbe6;border-radius:12px;background:#fff;color:#1d304a;font-size:14px;box-shadow:0 1px 2px rgba(20,50,80,.04)}
+#pdf-addon .app-field textarea{min-height:78px;padding:10px 12px;border:1.5px solid #d0dbe6;border-radius:12px;font-size:14px}
+#pdf-addon .app-download-card{min-height:60px;margin:10px 0 0;border:0;border-radius:16px;background:linear-gradient(100deg,#087cf4,#078de9);font-size:19px;font-weight:800;box-shadow:0 6px 15px rgba(7,122,239,.25)}
+#pdf-addon .app-download-card span{font-size:27px}
+#pdf-addon .app-status{text-align:center;font-size:11px;color:#6b8198;margin:8px 0 0}
+@media(max-width:560px){
+ #pdf-addon{padding:9px 8px 13px}
+ #pdf-addon .app-top-uploads{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #pdf-addon .app-upload-tile>label{grid-template-columns:39px minmax(0,1fr) 10px;min-height:67px;gap:6px;padding:7px;border-radius:15px}
+ #pdf-addon .app-upload-tile>label .upload-icon{width:38px;height:38px;border-radius:12px;font-size:20px}
+ #pdf-addon .app-upload-tile>label>span:nth-child(2){font-size:12px;white-space:normal}
+ #pdf-addon .app-upload-tile>label small{font-size:9px}
+ #pdf-addon .upload-drop{min-height:130px;padding:8px 4px}
+ #pdf-addon .app-section{padding:9px 10px;margin:8px 0;border-radius:17px}
+ #pdf-addon .app-section h4{font-size:15px;min-height:40px;padding:6px 8px}
+ #pdf-addon .app-section h4 span{width:36px;height:36px;font-size:18px}
+ #pdf-addon .app-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 9px}
+ #pdf-addon .app-field{font-size:12px}
+ #pdf-addon .app-field input,#pdf-addon .app-field select{height:43px;min-height:43px;padding:7px 8px;font-size:12px;border-radius:10px}
+ #pdf-addon .app-field textarea{min-height:76px;font-size:12px}
+ #pdf-addon .app-download-card{min-height:56px;font-size:18px;border-radius:14px}
+}
+@media(max-width:360px){#pdf-addon .app-field input,#pdf-addon .app-field select{font-size:11px;padding:6px}#pdf-addon .app-upload-tile>label>span:nth-child(2){font-size:11px}}
+
 </style>
 <div class="app-head"><div><h3>NID তথ্য ফর্ম</h3><div class="app-sub">তথ্য পূরণ করুন অথবা PDF আপলোড করুন</div></div></div>
 <div class="app-section app-pdf-upload"><h4>PDF Upload</h4><div class="app-pdf-row"><label for="addon-pdf">PDF ফাইল নির্বাচন করুন</label><input id="addon-pdf" type="file" accept="application/pdf,.pdf"><button id="addon-extract" type="button" hidden aria-hidden="true" style="display:none">Local PDF Extract</button></div></div>

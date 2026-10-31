@@ -6,6 +6,22 @@ ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 PROJECTS_DIR = ROOT / "projects"
 PROJECTS_DIR.mkdir(exist_ok=True)
+PDF_PREVIEWS = {}
+AI_SETTINGS_FILE = ROOT / 'private-api-keys.json'
+
+def load_ai_settings():
+    try:
+        data = json.loads(AI_SETTINGS_FILE.read_text(encoding='utf-8'))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+def save_ai_settings(data):
+    # Restrict permissions where supported; never include this file in project ZIPs.
+    AI_SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+    try: os.chmod(AI_SETTINGS_FILE, 0o600)
+    except Exception: pass
+
 
 def clean_project_name(raw):
     name = re.sub(r'[<>:"/\\\\|?*\x00-\x1f]', '_', str(raw or '').strip())
@@ -32,8 +48,31 @@ class Handler(SimpleHTTPRequestHandler):
         # Browsers request this automatically; the editor has no favicon asset.
         if parsed.path == '/favicon.ico':
             self.send_response(204); self.send_header('Content-Length', '0'); self.end_headers(); return
+        if parsed.path == '/api/pdf/view':
+            token = parse_qs(parsed.query).get('id', [''])[0]
+            entry = PDF_PREVIEWS.get(token)
+            if not entry or entry[0] < time.time():
+                PDF_PREVIEWS.pop(token, None)
+                self.send_error(404, 'PDF preview expired or not found')
+                return
+            data = entry[1]
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/pdf')
+            self.send_header('Content-Disposition', 'inline; filename="editor-preview.pdf"')
+            self.send_header('Content-Length', str(len(data)))
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
+        if parsed.path == '/api/ai/settings':
+            settings = load_ai_settings()
+            return json_reply(self, 200, {'ok': True, 'providers': {
+                'gemini': {'configured': bool(settings.get('gemini_key')), 'masked': ('••••' + settings.get('gemini_key','')[-4:]) if settings.get('gemini_key') else ''},
+                'grok': {'configured': bool(settings.get('grok_key')), 'masked': ('••••' + settings.get('grok_key','')[-4:]) if settings.get('grok_key') else ''}
+            }})
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -87,6 +126,56 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/ai/settings':
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 20000: raise ValueError('Invalid settings payload')
+                payload = json.loads(self.rfile.read(size).decode('utf-8'))
+                provider = payload.get('provider')
+                if provider not in ('gemini', 'grok'): raise ValueError('Unknown provider')
+                key = str(payload.get('apiKey', '')).strip()
+                settings = load_ai_settings()
+                if key: settings[provider + '_key'] = key
+                elif payload.get('delete') is True: settings.pop(provider + '_key', None)
+                save_ai_settings(settings)
+                return json_reply(self, 200, {'ok': True, 'message': 'API Key private server storage-এ সেভ হয়েছে'})
+            except Exception as exc:
+                return json_reply(self, 400, {'ok': False, 'error': str(exc)})
+        if parsed.path == '/api/ai/parse':
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 100000: raise ValueError('Format text is empty or too large')
+                payload = json.loads(self.rfile.read(size).decode('utf-8'))
+                provider = payload.get('provider')
+                raw = str(payload.get('text', '')).strip()
+                if provider not in ('gemini', 'grok') or not raw: raise ValueError('AI provider and pasted format are required')
+                settings = load_ai_settings(); key = settings.get(provider + '_key', '')
+                if not key: raise ValueError('এই Provider-এর API Key আগে Save করুন')
+                prompt = "Extract only explicitly stated values from this text. Return valid JSON only with keys nameBn, nameEn, dob, fatherName, motherName, address, birthPlace. Use empty string for missing fields. Do not infer or invent values. Preserve Bengali text.\n\nTEXT:\n" + raw
+                from urllib.request import Request, urlopen
+                if provider == 'gemini':
+                    model = 'gemini-3-flash-preview'
+                    url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key
+                    body = {'contents': [{'parts': [{'text': prompt}]}], 'generationConfig': {'responseMimeType': 'application/json', 'temperature': 0}}
+                    req = Request(url, data=json.dumps(body).encode('utf-8'), headers={'Content-Type':'application/json'}, method='POST')
+                    with urlopen(req, timeout=90) as r: result = json.loads(r.read().decode('utf-8'))
+                    output = result['candidates'][0]['content']['parts'][0]['text']
+                else:
+                    model = 'grok-4.6'
+                    url = 'https://api.x.ai/v1/chat/completions'
+                    body = {'model': model, 'temperature': 0, 'messages': [{'role':'system','content':'Return only valid JSON. Do not invent missing data.'},{'role':'user','content':prompt}]}
+                    req = Request(url, data=json.dumps(body).encode('utf-8'), headers={'Content-Type':'application/json','Authorization':'Bearer '+key}, method='POST')
+                    with urlopen(req, timeout=90) as r: result = json.loads(r.read().decode('utf-8'))
+                    output = result['choices'][0]['message']['content']
+                output = output.strip()
+                if output.startswith('```'):
+                    output = re.sub(r'^```(?:json)?\s*|\s*```$', '', output, flags=re.I)
+                data = json.loads(output)
+                allowed = ('nameBn','nameEn','dob','fatherName','motherName','address','birthPlace')
+                clean_data = {k: str(data.get(k) or '').strip() for k in allowed}
+                return json_reply(self, 200, {'ok': True, 'data': clean_data, 'model': model})
+            except Exception as exc:
+                return json_reply(self, 400, {'ok': False, 'error': str(exc)[:1200]})
         if parsed.path == '/api/projects/save':
             name = clean_project_name(parse_qs(parsed.query).get('name', [''])[0])
             try:
@@ -226,7 +315,10 @@ if IS_RENDER:
     print('Health check: /health', flush=True)
     print('Projects directory (ephemeral on standard Render disks):', str(PROJECTS_DIR), flush=True)
 else:
-    s = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    # NIDMAK_PORT allows the launcher to choose a free, tunnelable local port.
+    # If it is not set, preserve the original automatic ephemeral-port behavior.
+    local_port = int(os.environ.get('NIDMAK_PORT', '0'))
+    s = ThreadingHTTPServer(('127.0.0.1', local_port), Handler)
     url = f'http://127.0.0.1:{s.server_port}/'
     print('Editor:', url, flush=True)
     print('Permanent projects folder:', str(PROJECTS_DIR), flush=True)
