@@ -64,6 +64,10 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  const aside=document.querySelector('main>aside');
  const toggle=document.getElementById('toggleEditorTools');
  if(!header||!aside||!toggle) return;
+ // The top control must be icon-only from the first paint, not only after click.
+ toggle.textContent='☰';
+ toggle.setAttribute('aria-label','Open sidebar');
+ toggle.title='Open sidebar';
 
  let drawer=document.getElementById('allEditorTools');
  if(!drawer){
