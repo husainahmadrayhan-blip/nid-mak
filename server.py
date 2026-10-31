@@ -210,9 +210,9 @@ class Handler(SimpleHTTPRequestHandler):
                     if not value or value.startswith(('data:', 'http://', 'https://', '//', '#', 'blob:', 'javascript:', 'mailto:')):
                         return match.group(0)
                     return attr + quote + urljoin(origin, value) + quote
-                document_html = re.sub(r'\b(src|href)\s*=\s*([\"\\'])(.*?)\2', absolute_ref, document_html, flags=re.I)
+                document_html = re.sub(r"\b(src|href)\s*=\s*(['\"])(.*?)\2", absolute_ref, document_html, flags=re.I)
                 document_html = re.sub(
-                    r'url\(\s*([\"\\']?)(?!data:|https?:|//|#)([^)\"\\']+)\1\s*\)',
+                    r"url\(\s*(['\"]?)(?!data:|https?:|//|#)([^)'\"]+)\1\s*\)",
                     lambda m: 'url("' + urljoin(origin, m.group(2).strip()) + '")',
                     document_html, flags=re.I
                 )
