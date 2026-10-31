@@ -129,22 +129,21 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  const style=document.createElement('style');
  style.id='mobile-main-ui-cleanup';
  style.textContent=`
+ /* Main header contains only the hamburger. All action buttons belong in the sidebar list. */
+ header{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:nowrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
+ header>*{display:none!important}
+ header #toggleEditorTools{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 44px!important;width:44px!important;height:44px!important;max-width:44px!important;height:44px!important;margin:0!important;padding:0!important;border:0!important;border-radius:10px!important;background:#fff!important;color:#172d50!important;font-size:28px!important;line-height:1!important;box-shadow:0 2px 8px rgba(20,60,100,.12)!important}
+ #allEditorTools{display:block!important;margin:0!important;width:100%!important;max-width:100%!important}
+ #allEditorActions{max-height:70vh!important;overflow:auto!important;min-width:0!important}
+ #allEditorActions>*{max-width:100%!important;box-sizing:border-box!important}
+ #status{display:none!important}
  @media(max-width:800px){
-   header{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:nowrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
-   header>*{display:none!important}
-   header #toggleEditorTools{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 44px!important;width:44px!important;height:44px!important;max-width:44px!important;margin:0!important;padding:0!important;border:0!important;border-radius:10px!important;background:#fff!important;color:#172d50!important;font-size:28px!important;line-height:1!important;box-shadow:0 2px 8px rgba(20,60,100,.12)!important}
    main>aside{display:none!important;width:100%!important;max-width:100%!important;margin:0!important}
    body.tools-open main>aside{display:block!important}
-   #allEditorTools{display:block!important;margin:0!important;width:100%!important;max-width:100%!important}
-   #allEditorActions{max-height:70vh!important;overflow:auto!important;min-width:0!important}
-   #allEditorActions>*{max-width:100%!important;box-sizing:border-box!important}
-   #status{display:none!important}
    #stage-holder,#stage{max-width:100%!important}
    body{overflow-x:hidden!important}
  }
- @media(min-width:801px){
-   #allEditorTools{max-width:100%}
- }
+ @media(min-width:801px){#allEditorTools{max-width:100%}}
  `;
  document.head.appendChild(style);
  document.querySelectorAll('#addon-advanced').forEach(el=>el.removeAttribute('open'));
