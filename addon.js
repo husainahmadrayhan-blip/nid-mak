@@ -277,7 +277,7 @@ function currentAddress(value){
  const m=v.match(/(?:^|[,،]\s*)([০-৯\d]{4})\s*[,،]?\s*গ্রাম\s*[:ঃ]?\s*([^,،]+)\s*[,،]\s*ডাকঘর\s*[:ঃ]?\s*([^,،]+)(.*)$/i);
  if(!m)return v;
  const post=m[3].trim(), repeated=post.split(/\s+/).pop();
- const rest=m[4].split(/[,،]/).map(x=>x.trim()).filter(x=>x&&x!==repeated&&!/বিভাগ|division/i.test(x));
+ const rest=m[4].split(/[,،]/).map(x=>x.trim()).filter(x=>x&&x.replace(/ী/g,'ি')!==repeated.replace(/ী/g,'ি')&&!/বিভাগ|division/i.test(x));
  return 'ঠিকানা: গ্রাম/রাস্তা : '+m[2].trim()+', ডাকঘর: '+post+'- '+m[1]+(rest.length?', '+rest.join(', '):'');
 }
 function renderForm(data){
@@ -312,6 +312,7 @@ function renderForm(data){
   else {input=document.createElement('input');input.type='text';}
   if(type==='date-text'){input.inputMode='numeric';input.placeholder='DD/MM/YYYY';input.autocapitalize='off';input.spellcheck=false;}
   input.value=type==='date-text'?displayDate(value):String(value??'');
+  if(type==='date-text')input.addEventListener('blur',()=>{const formatted=normalizeDate(input.value);input.value=formatted;try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,formatted);by('addon-json').value=JSON.stringify(raw,null,2);}catch(_){}});
   if(key==='birthPlace')input.value=districtOnly(value);
   if(key==='address')input.value=currentAddress(value);
   input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
