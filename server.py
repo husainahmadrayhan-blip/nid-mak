@@ -6,7 +6,6 @@ ROOT = Path(__file__).resolve().parent
 os.chdir(ROOT)
 PROJECTS_DIR = ROOT / "projects"
 PROJECTS_DIR.mkdir(exist_ok=True)
-PDF_PREVIEWS = {}
 
 def clean_project_name(raw):
     name = re.sub(r'[<>:"/\\\\|?*\x00-\x1f]', '_', str(raw or '').strip())
@@ -33,51 +32,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Browsers request this automatically; the editor has no favicon asset.
         if parsed.path == '/favicon.ico':
             self.send_response(204); self.send_header('Content-Length', '0'); self.end_headers(); return
-        if parsed.path == '/api/pdf/view':
-            token = parse_qs(parsed.query).get('id', [''])[0]
-            entry = PDF_PREVIEWS.get(token)
-            if not entry or entry[0] < time.time():
-                PDF_PREVIEWS.pop(token, None)
-                self.send_error(404, 'PDF preview expired or not found')
-                return
-            data = entry[1]
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/pdf')
-            self.send_header('Content-Disposition', 'inline; filename="editor-preview.pdf"')
-            self.send_header('Content-Length', str(len(data)))
-            self.send_header('Cache-Control', 'no-store')
-            self.send_header('X-Content-Type-Options', 'nosniff')
-            self.end_headers()
-            self.wfile.write(data)
-            return
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
-        if parsed.path == '/api/pdf/health':
-            is_render = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
-            service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
-            if not service_url and not is_render:
-                service_url = 'http://127.0.0.1:3000'
-            password = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
-            if not service_url:
-                return json_reply(self, 503, {'ok': False, 'error': 'Set PDF_SERVICE_URL in the server environment'})
-            try:
-                from urllib.request import urlopen, Request
-                import base64
-                headers = {}
-                if password:
-                    credentials = base64.b64encode(('nidmak:' + password).encode('utf-8')).decode('ascii')
-                    headers['Authorization'] = 'Basic ' + credentials
-                request = Request(service_url + '/health', headers=headers)
-                with urlopen(request, timeout=15) as response:
-                    status = response.status
-                    data = json.loads(response.read().decode('utf-8'))
-                return json_reply(self, 200 if status == 200 and data.get('status') == 'up' else 502, {
-                    'ok': bool(status == 200 and data.get('status') == 'up'),
-                    'service': 'gotenberg',
-                    'renderer': data
-                })
-            except Exception as exc:
-                return json_reply(self, 502, {'ok': False, 'service': 'gotenberg', 'error': str(exc)[:1200]})
         if parsed.path == '/api/projects':
             projects = []
             for folder in PROJECTS_DIR.iterdir():
@@ -106,58 +62,6 @@ class Handler(SimpleHTTPRequestHandler):
             link = '<link rel="stylesheet" href="/mobile-workspace-fix.css">'
             if link not in page:
                 page = page.replace('</head>', link + '\n</head>', 1)
-            # Intercept only the existing Print/PDF popup's print() call.
-            # The editor's original print layout and stage-cloning code remain untouched.
-            bridge = r'''<script>
-(function(){
-  document.addEventListener('click', function(event){
-    const button = event.target && event.target.closest ? event.target.closest('#printPdf') : null;
-    if (!button) return;
-    const nativeOpen = window.open;
-    window.open = function(){
-      const popup = nativeOpen.apply(window, arguments);
-      window.open = nativeOpen;
-      if (!popup) return popup;
-      return new Proxy(popup, {
-        get(target, property){
-          if (property === 'print') return async function(){
-            try {
-              const html = '<!doctype html>' + popup.document.documentElement.outerHTML;
-              const response = await fetch('/api/pdf/create', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({html: html})
-              });
-              if (!response.ok) {
-                let message = 'PDF তৈরি করা যায়নি';
-                try { const data = await response.json(); message = data.error || message; } catch (_) {}
-                throw new Error(message);
-              }
-              const result = await response.json();
-              if (!result.ok || !result.url) throw new Error(result.error || 'PDF URL পাওয়া যায়নি');
-              // A same-origin HTTP response with application/pdf reliably invokes
-              // Chrome's built-in PDF viewer in the already-opened tab.
-              const pdfUrl = new URL(result.url, window.location.origin).href;
-              popup.location.replace(pdfUrl);
-            } catch (error) {
-              try { popup.close(); } catch (_) {}
-              alert('PDF তৈরি করা যায়নি: ' + error.message);
-            }
-          };
-          const value = Reflect.get(target, property, target);
-          return typeof value === 'function' ? value.bind(target) : value;
-        }
-      });
-    };
-    setTimeout(function(){ window.open = nativeOpen; }, 0);
-  }, true);
-})();
-</script>'''
-            if 'CHROME_NATIVE_PDF_BRIDGE' not in page:
-                body_close = page.lower().rfind('</body>')
-                if body_close < 0:
-                    raise RuntimeError('Editor HTML closing body tag was not found')
-                page = page[:body_close] + bridge.replace('<script>', '<script>/* CHROME_NATIVE_PDF_BRIDGE */', 1) + '\n' + page[body_close:]
             body = page.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -183,100 +87,6 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path == '/api/pdf/create':
-            try:
-                size = int(self.headers.get('Content-Length', '0'))
-                if not 0 < size <= 100 * 1024 * 1024:
-                    raise ValueError('Print document must be between 1 byte and 100 MB')
-                payload = json.loads(self.rfile.read(size).decode('utf-8'))
-                document_html = payload.get('html')
-                if not isinstance(document_html, str) or '<html' not in document_html.lower():
-                    raise ValueError('Valid HTML print document is required')
-                is_render = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
-                service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
-                if not service_url and not is_render:
-                    service_url = 'http://127.0.0.1:3000'
-                token = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
-                if not service_url:
-                    return json_reply(self, 503, {
-                        'ok': False,
-                        'error': 'PDF service is not configured. Set PDF_SERVICE_URL in the server environment.'
-                    })
-                from urllib.request import Request, urlopen
-                from urllib.error import HTTPError, URLError
-                import base64
-                import secrets
-                from urllib.parse import urljoin
-                forwarded_proto = self.headers.get('X-Forwarded-Proto', 'https').split(',')[0].strip()
-                host = self.headers.get('Host', '127.0.0.1')
-                origin = forwarded_proto + '://' + host + '/'
-                # Resolve relative asset URLs against the editor origin. Gotenberg's
-                # HTML upload endpoint runs in a separate container, so relative
-                # paths must be absolute URLs to remain reachable.
-                def absolute_ref(match):
-                    attr, quote, value = match.group(1), match.group(2), match.group(3)
-                    value = value.strip()
-                    if not value or value.startswith(('data:', 'http://', 'https://', '//', '#', 'blob:', 'javascript:', 'mailto:')):
-                        return match.group(0)
-                    return attr + quote + urljoin(origin, value) + quote
-                document_html = re.sub(r"\b(src|href)\s*=\s*(['\"])(.*?)\2", absolute_ref, document_html, flags=re.I)
-                document_html = re.sub(
-                    r"url\(\s*(['\"]?)(?!data:|https?:|//|#)([^)'\"]+)\1\s*\)",
-                    lambda m: 'url("' + urljoin(origin, m.group(2).strip()) + '")',
-                    document_html, flags=re.I
-                )
-                boundary = '----NidMakGotenberg' + secrets.token_hex(16)
-                parts = []
-                def add_field(name, value):
-                    parts.append(('--' + boundary + '\r\n').encode())
-                    parts.append(('Content-Disposition: form-data; name="' + name + '"\r\n\r\n').encode())
-                    parts.append(str(value).encode('utf-8'))
-                    parts.append(b'\r\n')
-                parts.append(('--' + boundary + '\r\n').encode())
-                parts.append(b'Content-Disposition: form-data; name="files"; filename="index.html"\r\n')
-                parts.append(b'Content-Type: text/html; charset=utf-8\r\n\r\n')
-                parts.append(document_html.encode('utf-8'))
-                parts.append(b'\r\n')
-                add_field('printBackground', 'true')
-                add_field('preferCssPageSize', 'true')
-                add_field('emulatedMediaType', 'screen')
-                add_field('waitDelay', '1s')
-                parts.append(('--' + boundary + '--\r\n').encode())
-                request_body = b''.join(parts)
-                request_headers = {
-                    'Content-Type': 'multipart/form-data; boundary=' + boundary,
-                    'Gotenberg-Output-Filename': 'nid-mak-preview'
-                }
-                if token:
-                    credentials = base64.b64encode(('nidmak:' + token).encode('utf-8')).decode('ascii')
-                    request_headers['Authorization'] = 'Basic ' + credentials
-                request = Request(
-                    service_url + '/forms/chromium/convert/html',
-                    data=request_body,
-                    headers=request_headers,
-                    method='POST'
-                )
-                try:
-                    with urlopen(request, timeout=150) as response:
-                        pdf_data = response.read()
-                except HTTPError as exc:
-                    detail = exc.read(4000).decode('utf-8', errors='replace')
-                    raise RuntimeError('Gotenberg returned HTTP ' + str(exc.code) + ': ' + detail)
-                except URLError as exc:
-                    raise RuntimeError('Could not connect to Gotenberg: ' + str(exc.reason))
-                if not pdf_data.startswith(b'%PDF-'):
-                    raise RuntimeError('PDF renderer returned invalid PDF bytes')
-                now = time.time()
-                for old_token, old_entry in list(PDF_PREVIEWS.items()):
-                    if old_entry[0] < now:
-                        PDF_PREVIEWS.pop(old_token, None)
-                token_id = uuid.uuid4().hex
-                PDF_PREVIEWS[token_id] = (now + 600, pdf_data)
-                return json_reply(self, 200, {'ok': True, 'url': '/api/pdf/view?id=' + token_id})
-            except Exception as exc:
-                print('[PDF_CREATE] PDF service request failed:', repr(exc), flush=True)
-                traceback.print_exc()
-                return json_reply(self, 500, {'ok': False, 'error': 'PDF তৈরি ব্যর্থ: ' + str(exc)})
         if parsed.path == '/api/projects/save':
             name = clean_project_name(parse_qs(parsed.query).get('name', [''])[0])
             try:
