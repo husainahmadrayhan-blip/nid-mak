@@ -41,15 +41,19 @@ function restore(){if(!doc)return;normalizeRoles();const data=getSaved();for(con
 window.flushPermanentLayout=save;
 const button=document.createElement('button');button.type='button';button.id='layout-save';button.textContent='📌 Save Positions Permanently';button.onclick=save;
 const indicator=document.createElement('span');indicator.id='layout-status';indicator.style.cssText='display:block;font-size:12px;color:#71839a;margin:8px 0';indicator.textContent='Drag করে পজিশন ঠিক করুন—Auto Save চালু';
-// Keep the permanent-position control inside the hamburger Tools Drawer.
-// main-inline.js creates #allEditorActions; if it is not ready yet, use the
-// header temporarily and relocate it once the drawer is available.
-const toolsActions=document.getElementById('allEditorActions');
-if(toolsActions){toolsActions.append(button,indicator)}else{
- const header=document.querySelector('header');
- if(header)header.append(button,indicator);
- const moveToDrawer=()=>{const target=document.getElementById('allEditorActions');if(target){target.append(button,indicator);return true}return false};
- document.addEventListener('DOMContentLoaded',moveToDrawer,{once:true});
+// Place the permanent-position control only in the sidebar action list.
+// Wait for main-inline.js to create the drawer; never append this control to the top header.
+function placePermanentPositionControls(){
+ const target=document.getElementById('allEditorActions');
+ if(!target)return false;
+ if(button.parentElement!==target)target.append(button,indicator);
+ return true;
+}
+if(!placePermanentPositionControls()){
+ const observer=new MutationObserver(()=>{
+   if(placePermanentPositionControls())observer.disconnect();
+ });
+ observer.observe(document.documentElement,{childList:true,subtree:true});
 }
 const oldLoad=load;load=async function(files){await oldLoad(files);restore();if(doc)render()};
 const oldRender=render;render=function(...args){if(doc)restore();return oldRender(...args)};
