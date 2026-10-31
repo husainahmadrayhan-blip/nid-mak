@@ -53,15 +53,21 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == '/health':
             return json_reply(self, 200, {'ok': True, 'service': 'visual-html-editor'})
         if parsed.path == '/api/pdf/health':
+            is_render = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
             service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
+            if not service_url and not is_render:
+                service_url = 'http://127.0.0.1:3000'
             password = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
-            if not service_url or not password:
-                return json_reply(self, 503, {'ok': False, 'error': 'Set PDF_SERVICE_URL and PDF_SERVICE_TOKEN in Render environment'})
+            if not service_url:
+                return json_reply(self, 503, {'ok': False, 'error': 'Set PDF_SERVICE_URL in the server environment'})
             try:
                 from urllib.request import urlopen, Request
                 import base64
-                credentials = base64.b64encode(('nidmak:' + password).encode('utf-8')).decode('ascii')
-                request = Request(service_url + '/health', headers={'Authorization': 'Basic ' + credentials})
+                headers = {}
+                if password:
+                    credentials = base64.b64encode(('nidmak:' + password).encode('utf-8')).decode('ascii')
+                    headers['Authorization'] = 'Basic ' + credentials
+                request = Request(service_url + '/health', headers=headers)
                 with urlopen(request, timeout=15) as response:
                     status = response.status
                     data = json.loads(response.read().decode('utf-8'))
@@ -186,12 +192,15 @@ class Handler(SimpleHTTPRequestHandler):
                 document_html = payload.get('html')
                 if not isinstance(document_html, str) or '<html' not in document_html.lower():
                     raise ValueError('Valid HTML print document is required')
+                is_render = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
                 service_url = os.environ.get('PDF_SERVICE_URL', '').strip().rstrip('/')
+                if not service_url and not is_render:
+                    service_url = 'http://127.0.0.1:3000'
                 token = os.environ.get('PDF_SERVICE_TOKEN', '').strip()
-                if not service_url or not token:
+                if not service_url:
                     return json_reply(self, 503, {
                         'ok': False,
-                        'error': 'PDF service is not configured. Set PDF_SERVICE_URL and PDF_SERVICE_TOKEN in Render.'
+                        'error': 'PDF service is not configured. Set PDF_SERVICE_URL in the server environment.'
                     })
                 from urllib.request import Request, urlopen
                 from urllib.error import HTTPError, URLError
@@ -234,15 +243,17 @@ class Handler(SimpleHTTPRequestHandler):
                 add_field('waitDelay', '1s')
                 parts.append(('--' + boundary + '--\r\n').encode())
                 request_body = b''.join(parts)
-                credentials = base64.b64encode(('nidmak:' + token).encode('utf-8')).decode('ascii')
+                request_headers = {
+                    'Content-Type': 'multipart/form-data; boundary=' + boundary,
+                    'Gotenberg-Output-Filename': 'nid-mak-preview'
+                }
+                if token:
+                    credentials = base64.b64encode(('nidmak:' + token).encode('utf-8')).decode('ascii')
+                    request_headers['Authorization'] = 'Basic ' + credentials
                 request = Request(
                     service_url + '/forms/chromium/convert/html',
                     data=request_body,
-                    headers={
-                        'Content-Type': 'multipart/form-data; boundary=' + boundary,
-                        'Authorization': 'Basic ' + credentials,
-                        'Gotenberg-Output-Filename': 'nid-mak-preview'
-                    },
+                    headers=request_headers,
                     method='POST'
                 )
                 try:
