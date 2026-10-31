@@ -44,18 +44,22 @@ function currentAddress(value){
 }
 const clean=s=>String(s||'').replace(/^[\s:：\-–—]+/,'').trim();
 function parse(raw){
- const lines=raw.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean),o={};
+ const lines=raw.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean),o={};let section='applicant';
  for(let i=0;i<lines.length;i++){
   const line=lines[i],next=lines[i+1]||'';let m;
-  if((m=line.match(/^(?:\*?\s*)?নাম\s*(?:বাংলায়|বাংলা)?\s*[:ঃ\-–]\s*(.+)$/i)))o.nameBn=clean(m[1]);
-  else if((m=line.match(/^(?:নাম\s*(?:ইংরেজিতে|ইংরেজি)|name|english\s*name)\s*[:ঃ\-–]\s*(.+)$/i)))o.nameEn=clean(m[1]).toUpperCase();
-  else if((m=line.match(/^(?:জন্ম\s*তারিখ|জন্মতারিখ|date\s*of\s*birth|dob)\s*[:ঃ\-–]\s*(.+)$/i)))o.dob=normalizeDate(clean(m[1]));
-  else if((m=line.match(/^(?:পিতা(?:র)?\s*নাম|পিতার\s*নাম)\s*[:ঃ\-–]\s*(.+)$/i)))o.fatherName=clean(m[1]);
-  else if((m=line.match(/^(?:মাতা(?:র)?\s*নাম|মায়ের\s*নাম)\s*[:ঃ\-–]\s*(.+)$/i)))o.motherName=clean(m[1]);
-  else if(/^(?:স্থায়ী\s*ঠিকানা|বর্তমান\s*ঠিকানা)(?:\s*\([^)]*\))?\s*[-–:]?$/i.test(line)&&next)o.address=currentAddress(next);
-  else if((m=line.match(/^(?:গ্রাম\s*\/\s*রাস্তা|ঠিকানা|স্থায়ী\s*ঠিকানা|বর্তমান\s*ঠিকানা)\s*[:ঃ\-–]\s*(.+)$/i)))o.address=currentAddress(clean(m[1]));
-  else if(/^(?:জন্ম\s*স্থান|জন্মস্থান|place\s*of\s*birth)(?:\s*\([^)]*\))?\s*[-–:]?$/i.test(line)&&next)o.birthPlace=districtOnly(next);
-  else if((m=line.match(/^(?:জন্ম\s*স্থান|জন্মস্থান|place\s*of\s*birth)\s*[:ঃ\-–]\s*(.+)$/i)))o.birthPlace=districtOnly(clean(m[1]));
+  if(/^পিতার\s*তথ্য/.test(line)){section='father';continue;}
+  if(/^মাতার\s*তথ্য/.test(line)){section='mother';continue;}
+  if(/^নিজের\s*তথ্য/.test(line)){section='applicant';continue;}
+  if(section==='applicant'){
+   if((m=line.match(/^(?:\*?\s*)?নাম\s*(?:বাংলায়|বাংলা)?\s*[:ঃ\-–]\s*(.+)$/i)))o.nameBn=clean(m[1]);
+   else if((m=line.match(/^(?:নাম\s*(?:ইংরেজিতে|ইংরেজি)|name|english\s*name)\s*[:ঃ\-–]\s*(.+)$/i)))o.nameEn=clean(m[1]).toUpperCase();
+   else if((m=line.match(/^(?:জন্ম\s*তারিখ|জন্মতারিখ|date\s*of\s*birth|dob)\s*[:ঃ\-–]\s*(.+)$/i)))o.dob=normalizeDate(clean(m[1]));
+   else if(/^(?:স্থায়ী\s*ঠিকানা|বর্তমান\s*ঠিকানা)(?:\s*\([^)]*\))?\s*[-–:]?$/i.test(line)&&next)o.address=currentAddress(next);
+   else if((m=line.match(/^(?:গ্রাম\s*\/\s*রাস্তা|ঠিকানা|স্থায়ী\s*ঠিকানা|বর্তমান\s*ঠিকানা)\s*[:ঃ\-–]\s*(.+)$/i)))o.address=currentAddress(clean(m[1]));
+   else if(/^(?:জন্ম\s*স্থান|জন্মস্থান|place\s*of\s*birth)(?:\s*\([^)]*\))?\s*[-–:]?$/i.test(line)&&next)o.birthPlace=districtOnly(next);
+   else if((m=line.match(/^(?:জন্ম\s*স্থান|জন্মস্থান|place\s*of\s*birth)\s*[:ঃ\-–]\s*(.+)$/i)))o.birthPlace=districtOnly(clean(m[1]));
+  }else if(section==='father' && (m=line.match(/^(?:পিতা(?:র)?\s*নাম|নাম\s*বাংলায়)\s*[:ঃ\-–]\s*(.+)$/i)))o.fatherName=clean(m[1]);
+  else if(section==='mother' && (m=line.match(/^(?:মাতা(?:র)?\s*নাম|নাম\s*বাংলায়)\s*[:ঃ\-–]\s*(.+)$/i)))o.motherName=clean(m[1]);
  }
  return o;
 }
