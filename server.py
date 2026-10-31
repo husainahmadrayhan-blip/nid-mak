@@ -405,7 +405,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Type','application/json; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers();self.wfile.write(body)
-# Use a threaded server so Playwright can fetch same-origin images/fonts while
+# Use a threaded server so browser asset requests can be served while
 # the PDF-generation request is being processed. Render binds to 0.0.0.0:$PORT.
 IS_RENDER = bool(os.environ.get('RENDER')) or bool(os.environ.get('PORT'))
 if IS_RENDER:
