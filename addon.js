@@ -254,6 +254,32 @@ const permanentFieldDefaults={
  issueDate:'',permanentAddress:'',presentAddress:'',gender:'',nationality:'',
  mobile:'',voterArea:''
 };
+function normalizeDate(value){
+ let v=String(value??'').trim().replace(/[০-৯]/g,ch=>'০১২৩৪৫৬৭৮৯'.indexOf(ch));
+ let m,d,mo,y;
+ if((m=v.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/))){y=+m[1];mo=+m[2];d=+m[3];}
+ else if((m=v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/))){d=+m[1];mo=+m[2];y=+m[3];}
+ else if((m=v.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/))){d=+m[1];mo=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].slice(0,3).toLowerCase())+1;y=+m[3];}
+ else return v;
+ const dt=new Date(Date.UTC(y,mo-1,d));
+ if(!y||!mo||!d||dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return v;
+ return String(d).padStart(2,'0')+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo-1]+' '+y;
+}
+function districtOnly(value){
+ const p=String(value||'').split(/[,،]/).map(x=>x.trim()).filter(Boolean);
+ if(!p.length)return '';
+ const last=p[p.length-1];
+ if(/বিভাগ|division/i.test(last)||/বাংলাদেশ|bangladesh/i.test(last))return p.length>1?p[p.length-2]:'';
+ return last.replace(/^(জেলা|district)\s*[:：-]?\s*/i,'').trim();
+}
+function currentAddress(value){
+ const v=String(value||'').trim();
+ const m=v.match(/(?:^|[,،]\s*)([০-৯\d]{4})\s*[,،]?\s*গ্রাম\s*[:ঃ]?\s*([^,،]+)\s*[,،]\s*ডাকঘর\s*[:ঃ]?\s*([^,،]+)(.*)$/i);
+ if(!m)return v;
+ const post=m[3].trim(), repeated=post.split(/\s+/).pop();
+ const rest=m[4].split(/[,،]/).map(x=>x.trim()).filter(x=>x&&x!==repeated&&!/বিভাগ|division/i.test(x));
+ return 'ঠিকানা: গ্রাম/রাস্তা : '+m[2].trim()+', ডাকঘর: '+post+'- '+m[1]+(rest.length?', '+rest.join(', '):'');
+}
 function renderForm(data){
  const groups={basic:by('addon-basic-fields'),personal:by('addon-personal-fields'),family:by('addon-family-fields'),address:by('addon-address-fields')};
  Object.values(groups).forEach(el=>el.replaceChildren());
@@ -274,17 +300,7 @@ function renderForm(data){
   ['address','address','ঠিকানা','textarea',['address','permanentAddress','presentAddress']]
  ];
  const normalized=k=>String(k||'').toLowerCase().replace(/[\s_.-]/g,'');
- const displayDate=value=>{
-  let v=String(value??'').trim().replace(/[০-৯]/g,ch=>'০১২৩৪৫৬৭৮৯'.indexOf(ch));
-  if(!v)return '';
-  let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m)return m[3].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[1];
-  m=v.match(/^(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{4})$/);
-  if(m)return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[3];
-  m=v.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);
-  if(m){const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};const month=months[m[2].slice(0,3).toLowerCase()];if(month)return m[1].padStart(2,'0')+'/'+month+'/'+m[3];}
-  return v;
- };
+ const displayDate=normalizeDate;
  for(const [key,group,label,type,aliases] of fields){
   const found=Object.keys(source).find(k=>aliases.some(a=>normalized(a)===normalized(k)));
   const value=found!==undefined?source[found]:(permanentFieldDefaults[key]||'');
@@ -296,6 +312,8 @@ function renderForm(data){
   else {input=document.createElement('input');input.type='text';}
   if(type==='date-text'){input.inputMode='numeric';input.placeholder='DD/MM/YYYY';input.autocapitalize='off';input.spellcheck=false;}
   input.value=type==='date-text'?displayDate(value):String(value??'');
+  if(key==='birthPlace')input.value=districtOnly(value);
+  if(key==='address')input.value=currentAddress(value);
   input.dataset.jsonKey=found!==undefined?found:key;input.autocomplete='off';
   input.addEventListener('input',()=>{
    try{const raw=JSON.parse(by('addon-json').value||'{}');setPath(raw,input.dataset.jsonKey,input.value);by('addon-json').value=JSON.stringify(raw,null,2);}
@@ -327,7 +345,7 @@ function score(el,key){const nk=normalize(key.split('.').pop());const known=[nk,
 // Match the supplied HTML by exact CSS class, never by guessed text labels.
 const templateMap=window.VisualEditorTemplateMap||{};
 function preferredKey(data,keys){return keys.find(k=>data[k]!==undefined&&data[k]!==null&&String(data[k]).trim()&&!/^(Father Name|Mother Name)$/i.test(String(data[k]).trim()))}
-function formatted(key,value){const v=String(value).trim();if(/(^|\.)(nameEn|englishName|fatherNameEn|motherNameEn)$/i.test(key))return v.toUpperCase();if(key==='dob'||key==='birthDate'){const m=v.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})$/);if(m)return `${m[1].padStart(2,'0')} ${m[2]} ${m[3]}`;}return v}
+function formatted(key,value){const v=String(value).trim();if(/(^|\.)(nameEn|englishName|fatherNameEn|motherNameEn)$/i.test(key))return v.toUpperCase();if(/(^|\.)(dob|birthDate|dateOfBirth)$/i.test(key))return normalizeDate(v);if(/(^|\.)(birthPlace|placeOfBirth)$/i.test(key))return districtOnly(v);if(/(^|\.)(address|presentAddress)$/i.test(key))return currentAddress(v);return v}
 function fillTemplate(data){let done=0,missing=[];for(const [selector,keys] of Object.entries(templateMap)){const key=preferredKey(data,keys);if(!key)continue;const elements=[...doc.querySelectorAll(selector)];if(!elements.length){missing.push(selector);continue;}for(const el of elements){const val=formatted(key,data[key]);if(el.tagName==='INPUT'||el.tagName==='TEXTAREA')el.value=val;else el.textContent=val;done++;}}return {done,missing}}
 let rows=[];let lastDataText='';
 function detect(){lastDataText=by('addon-json').value;const data=getData(),nodes=targetNodes(),keys=Object.keys(data).filter(k=>!/^data:image\//.test(String(data[k])));renderForm(data);rows=[];const panel=by('addon-mappings');panel.replaceChildren();for(const key of keys){let best=-1,points=0;nodes.forEach((el,i)=>{const n=score(el,key);if(n>points){points=n;best=i}});const line=document.createElement('div');line.style.cssText='display:flex;gap:5px;margin:5px 0;align-items:center';const label=document.createElement('span');label.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis';label.textContent=key;const sel=document.createElement('select');sel.style.width='55%';sel.add(new Option('— Skip —',''));nodes.forEach((el,i)=>{let description=[el.id,el.getAttribute('name'),el.getAttribute('data-field'),el.getAttribute('placeholder')].filter(Boolean).join(' / ')||el.textContent.trim().slice(0,24)||el.tagName;sel.add(new Option(`${i}: ${description}`,String(i)))});sel.value=best>=0?String(best):'';line.append(label,sel);panel.append(line);rows.push({key,sel})}msg(`${keys.length} fields found. Mapping যাচাই করুন।`)}
