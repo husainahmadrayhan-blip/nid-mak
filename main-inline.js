@@ -118,15 +118,17 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  toggle.addEventListener('click',()=>{
    const open=document.body.classList.toggle('tools-open');
    toggle.setAttribute('aria-expanded',String(open));
-   toggle.textContent=open?'✕ Close Tools':'☰ PDF / JSON / Editor Tools';
+   toggle.textContent=open?'✕':'☰';
+   toggle.setAttribute('aria-label',open?'Close sidebar':'Open sidebar');
+   toggle.title=open?'Close sidebar':'Open sidebar';
  });
  const style=document.createElement('style');
  style.id='mobile-main-ui-cleanup';
  style.textContent=`
  @media(max-width:800px){
-   header{display:flex!important;flex-wrap:wrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
+   header{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:nowrap!important;gap:6px!important;padding:8px!important;min-height:0!important}
    header>*{display:none!important}
-   header #toggleEditorTools{display:block!important;width:100%!important;max-width:none!important;margin:0!important}
+   header #toggleEditorTools{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 44px!important;width:44px!important;height:44px!important;max-width:44px!important;margin:0!important;padding:0!important;border:0!important;border-radius:10px!important;background:#fff!important;color:#172d50!important;font-size:28px!important;line-height:1!important;box-shadow:0 2px 8px rgba(20,60,100,.12)!important}
    main>aside{display:none!important;width:100%!important;max-width:100%!important;margin:0!important}
    body.tools-open main>aside{display:block!important}
    #allEditorTools{display:block!important;margin:0!important;width:100%!important;max-width:100%!important}
