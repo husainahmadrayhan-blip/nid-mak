@@ -1,11 +1,11 @@
 (()=>{'use strict';
 const F=[['nameBn','নাম (বাংলা)'],['nameEn','Name (English)'],['dob','জন্ম তারিখ'],['fatherName','পিতার নাম (বাংলা)'],['motherName','মাতার নাম (বাংলা)'],['address','ঠিকানা (বাংলা)'],['birthPlace','জন্মস্থান']];
-const root=document.createElement('section');root.style.cssText='padding:12px;background:#162c42;border:1px solid #48617a;border-radius:10px;margin:12px 0';
-root.innerHTML='<h3 style="margin:0 0 8px">Format → HTML Auto Fill (৭টি ঘর)</h3><textarea id="format-source" rows="9" style="width:100%;box-sizing:border-box;background:#0c1929;color:white;border:1px solid #52627b;border-radius:6px;padding:8px" placeholder="বাংলা/ইংরেজি ফরম্যাট এখানে পেস্ট করুন"></textarea><div style="display:flex;gap:7px;flex-wrap:wrap;margin:8px 0"><button type="button" id="format-parse">Normal Parse</button><button type="button" id="format-fill">Apply to HTML</button></div><div id="format-status" style="font-size:12px;margin:8px 0"></div><div id="format-fields"></div>';
-
+const root=document.createElement('section');
+root.style.cssText='padding:12px;background:#162c42;border:1px solid #48617a;border-radius:10px;margin:12px 0';
+root.innerHTML='<h3 style="margin:0 0 8px">Format Paste</h3><textarea id="format-source" rows="8" style="width:100%;box-sizing:border-box;background:#0c1929;color:white;border:1px solid #52627b;border-radius:6px;padding:8px" placeholder="বাংলা/ইংরেজি ফরম্যাট এখানে পেস্ট করুন"></textarea><div style="display:flex;gap:7px;flex-wrap:wrap;margin:8px 0"><button type="button" id="format-parse">Format Parse</button><button type="button" id="format-fill">HTML Apply</button></div><div id="format-status" style="font-size:12px;margin:8px 0"></div>';
 const aiBox=document.createElement('div');
 aiBox.style.cssText='margin-top:12px;padding:10px;border:1px solid #526b86;border-radius:8px;background:#102238';
-aiBox.innerHTML='<h4 style="margin:0 0 8px">AI API Settings / AI Format Auto Fill</h4><label style="display:block;margin:6px 0">AI Provider <select id="ai-provider" style="width:100%;padding:8px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px"><option value="gemini">Gemini 3 Flash</option><option value="grok">Grok Console</option></select></label><label style="display:block;margin:6px 0">API Key <input id="ai-api-key" type="password" autocomplete="new-password" placeholder="API Key এখানে দিন" style="width:100%;box-sizing:border-box;padding:8px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px"></label><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="ai-save-key">Save API Key</button><button type="button" id="ai-delete-key">Delete Key</button><button type="button" id="ai-parse-format">AI Format Parse + Fill</button></div><small id="ai-key-status" style="display:block;margin-top:7px;color:#cbd5e1">API Key server-এর private file-এ সেভ হবে।</small>';
+aiBox.innerHTML='<h4 style="margin:0 0 8px">AI Convert HTML</h4><label style="display:block;margin:6px 0">AI Provider <select id="ai-provider" style="width:100%;padding:8px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px"><option value="gemini">Gemini 3 Flash</option><option value="grok">Grok Console</option></select></label><label style="display:block;margin:6px 0">API Key <input id="ai-api-key" type="password" autocomplete="new-password" placeholder="API Key এখানে দিন" style="width:100%;box-sizing:border-box;padding:8px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px"></label><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" id="ai-save-key">Save API Key</button><button type="button" id="ai-delete-key">Delete Key</button><button type="button" id="ai-parse-format">AI Convert HTML</button></div><small id="ai-key-status" style="display:block;margin-top:7px;color:#cbd5e1">API Key server-এর private file-এ সেভ হবে।</small>';
 root.append(aiBox);
 root.id='format-auto-fill-tools';
 const addon=document.getElementById('pdf-addon');
@@ -14,8 +14,19 @@ const toolsDrawer=document.querySelector('main>aside');
 if(toolsActions){toolsActions.append(root);}
 else if(toolsDrawer){toolsDrawer.append(root);}
 else if(addon){addon.parentNode.insertBefore(root,addon);}
+// No duplicate File Data panel or extra input fields are created.
+// Parsed values are written into the existing PDF Data Extract fields.
+const FIELD_MAP={
+ nameBn:['nameBn','banglaName','name'],
+ nameEn:['nameEn','englishName'],
+ dob:['birthDate','dob','dateOfBirth'],
+ fatherName:['fatherNameBn','fatherName','father'],
+ motherName:['motherNameBn','motherName','mother'],
+ address:['address','permanentAddress','presentAddress'],
+ birthPlace:['birthPlace','placeOfBirth']
+};
 const el=id=>document.getElementById(id), status=s=>el('format-status').textContent;
-const fields=el('format-fields');for(const [k,label] of F){const wrapper=document.createElement('label');wrapper.style.cssText='display:block;margin:7px 0;font-size:12px';wrapper.textContent=label;const inp=document.createElement('textarea');inp.rows=k==='address'?3:1;inp.id='format-'+k;inp.style.cssText='display:block;width:100%;box-sizing:border-box;margin-top:3px;background:#0c1929;color:white;border:1px solid #52627b;border-radius:5px;padding:6px';wrapper.append(inp);fields.append(wrapper)}
+// Do not create duplicate Format fields. The existing #pdf-addon fields are the single source of truth.
 function normalizeDate(value){
  let v=String(value||'').trim().replace(/[০-৯]/g,ch=>'০১২৩৪৫৬৭৮৯'.indexOf(ch));
  let m,d,mo,y;
@@ -63,9 +74,25 @@ function parse(raw){
  }
  return o;
 }
-function write(o){for(const [k] of F)el('format-'+k).value=o[k]||''}
+function write(o){
+ let raw={};try{raw=JSON.parse(el('addon-json')?.value||'{}')}catch(_){}
+ for(const [k] of F){
+  if(o[k]===undefined||o[k]==='')continue;
+  const aliases=FIELD_MAP[k]||[k];
+  const input=[...document.querySelectorAll('#pdf-addon .app-field input, #pdf-addon .app-field textarea, #pdf-addon .app-field select')]
+    .find(node=>aliases.includes(node.closest('.app-field')?.title)||aliases.includes(node.dataset.jsonKey));
+  if(input){
+   input.value=k==='nameEn'?String(o[k]).toUpperCase():o[k];
+   const key=input.dataset.jsonKey||aliases[0];raw[key]=input.value;
+   input.dispatchEvent(new Event('input',{bubbles:true}));
+  }else{
+   const key=aliases[0];raw[key]=k==='nameEn'?String(o[k]).toUpperCase():o[k];
+  }
+ }
+ const json=el('addon-json');if(json)json.value=JSON.stringify({...raw,...Object.fromEntries(Object.entries(o).filter(([k,v])=>v!==''&&v!=null).map(([k,v])=>[(FIELD_MAP[k]||[k])[0],v]))},null,2);
+}
 el('format-parse').onclick=()=>{const data=parse(el('format-source').value);write(data);status(Object.keys(data).length+'টি ফিল্ড পাওয়া গেছে। ভুল থাকলে নিচের ঘরে সংশোধন করুন।')};
-el('format-fill').onclick=()=>{const data={};for(const [k] of F){const v=el('format-'+k).value.trim();if(v)data[k]=k==='nameEn'?v.toUpperCase():v}if(!Object.keys(data).length)return status('প্রথমে Format Parse করুন বা ঘর পূরণ করুন।');
+el('format-fill').onclick=()=>{const data={};for(const [k] of F){const aliases=FIELD_MAP[k]||[k];const input=[...document.querySelectorAll('#pdf-addon .app-field input, #pdf-addon .app-field textarea, #pdf-addon .app-field select')].find(node=>aliases.includes(node.closest('.app-field')?.title)||aliases.includes(node.dataset.jsonKey));const v=input?.value?.trim();if(v)data[k]=k==='nameEn'?v.toUpperCase():v}if(!Object.keys(data).length)return status('প্রথমে Format Parse করুন।');
 const json=el('addon-json'),fill=el('addon-fill');if(!json||!fill)return status('PDF Auto Fill module পাওয়া যায়নি।');let old={};try{old=JSON.parse(json.value||'{}')}catch(_){}json.value=JSON.stringify({...old,...data},null,2);fill.click();status('HTML-এ ৭টি নির্ধারিত ফিল্ডের ডাটা পাঠানো হয়েছে। Preview যাচাই করুন।')};
 // Synchronize edited PDF-extracted fields to the current HTML document.
 document.addEventListener('change',event=>{
