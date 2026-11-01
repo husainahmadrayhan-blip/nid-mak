@@ -346,7 +346,7 @@ function score(el,key){const nk=normalize(key.split('.').pop());const known=[nk,
 // Match the supplied HTML by exact CSS class, never by guessed text labels.
 const templateMap=window.VisualEditorTemplateMap||{};
 function preferredKey(data,keys){return keys.find(k=>data[k]!==undefined&&data[k]!==null&&String(data[k]).trim()&&!/^(Father Name|Mother Name)$/i.test(String(data[k]).trim()))}
-function isBanglaNameField(key,value){const leaf=String(key||'').split('.').pop().toLowerCase();const isNameKey=['namebn','banglaname','personnamebn','name','personname'].includes(leaf);return isNameKey&&/[\u0980-\u09FF]/.test(String(value||''))}
+function isBanglaNameField(key,value){const leaf=String(key||'').split('.').pop().toLowerCase();const isNameKey=['namebn','banglaname','personnamebn','person_name_bn','name','personname'].includes(leaf);return isNameKey&&/[\u0980-\u09FF]/.test(String(value||''))}
 // Use important inline styles on the actual Bengali-name element. This wins over
 // desktop/mobile template CSS and is serialized with the edited HTML on export.
 // English-name fields are deliberately left untouched.
