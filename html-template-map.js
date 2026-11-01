@@ -1,6 +1,6 @@
 /* Exact field map for uploaded HTML template. No guessed ID numbers. */
 window.VisualEditorTemplateMap={
-  '.field-name-bn':['nameBn'],
+  '.field-name-bn':['nameBn','personNameBn','banglaName','person_name_bn','name'],
   '.field-name-en':['nameEn'],
   '.field-father-bn':['fatherName'],
   '.field-mother-bn':['motherName'],
