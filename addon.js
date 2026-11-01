@@ -447,31 +447,6 @@ function ensureInlineAssetPreview(role, title) {
    nameInput.placeholder = 'বাংলা বা English নাম লিখুন';
    nameInput.autocomplete = 'off';
    nameInput.style.cssText = 'display:none;width:100%;max-width:260px;padding:8px 10px;border:1px solid #c9d7e5;border-radius:7px;font:13px system-ui,"Noto Sans Bengali",Arial,sans-serif;';
-   const pasteNameBtn = document.createElement('button');
-   pasteNameBtn.type = 'button';
-   pasteNameBtn.id = 'addon-paste-name-mark';
-   pasteNameBtn.className = 'secondary';
-   pasteNameBtn.textContent = '📋 Paste';
-   pasteNameBtn.style.cssText = 'display:none;padding:8px 11px;min-height:34px;font-size:12px;touch-action:manipulation;';
-   pasteNameBtn.addEventListener('click', async () => {
-    try {
-     if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
-      nameInput.focus();
-      msg('মোবাইলে নামের ঘরে চাপ দিয়ে ধরে Paste নির্বাচন করুন। Clipboard Paste-এর জন্য HTTPS প্রয়োজন হতে পারে।');
-      return;
-     }
-     const copiedText = await navigator.clipboard.readText();
-     if (!copiedText) throw new Error('Clipboard-এ কোনো লেখা পাওয়া যায়নি।');
-     nameInput.value = copiedText;
-     nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-     nameInput.dispatchEvent(new Event('change', { bubbles: true }));
-     nameInput.focus();
-     msg('Clipboard থেকে নাম বসানো হয়েছে। এবার Signature তৈরি করুন।');
-    } catch (err) {
-     nameInput.focus();
-     msg('Paste করা যায়নি। নামের ঘরে চাপ দিয়ে ধরে Paste নির্বাচন করুন। ' + (err && err.message ? err.message : ''));
-    }
-   });
    const createBtn = document.createElement('button');
    createBtn.type = 'button';
    createBtn.id = 'addon-create-name-mark';
@@ -493,7 +468,7 @@ function ensureInlineAssetPreview(role, title) {
    curvedBtn.textContent = 'Rounded Signature (Style 5)';
    curvedBtn.style.cssText = 'display:none;padding:8px 11px;min-height:34px;font-size:12px;';
    curvedBtn.addEventListener('click', createCurvedHandwritingSignature);
-   details.append(rotateBtn, removeBtn, nameInput, pasteNameBtn, createBtn, flowBtn, curvedBtn);
+   details.append(rotateBtn, removeBtn, nameInput, createBtn, flowBtn, curvedBtn);
   }
   wrap.append(img, details);
   host.append(wrap);
@@ -577,8 +552,6 @@ function updateInlineAssetPreview(data) {
    const curvedBtn = wrap.querySelector('#addon-create-curved-signature');
    if (removeBtn) removeBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
    if (nameInput) { nameInput.style.display = canEditSignature ? 'block' : 'none'; nameInput.style.width = '100%'; nameInput.style.maxWidth = '100%'; nameInput.style.minWidth = '0'; nameInput.style.webkitUserSelect = 'text'; nameInput.style.userSelect = 'text'; nameInput.style.touchAction = 'manipulation'; }
-   const pasteBtn = wrap.querySelector('#addon-paste-name-mark');
-   if (pasteBtn) { pasteBtn.style.display = canEditSignature ? 'inline-flex' : 'none'; pasteBtn.style.visibility = canEditSignature ? 'visible' : 'hidden'; pasteBtn.style.flex = '0 0 auto'; pasteBtn.style.position = 'relative'; pasteBtn.style.zIndex = '2'; }
    if (createBtn) createBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
    if (flowBtn) flowBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
    if (curvedBtn) curvedBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
@@ -591,11 +564,10 @@ function updateInlineAssetPreview(data) {
    if (rotateBtn) rotateBtn.style.display = 'none';
    if (removeBtn) removeBtn.style.display = 'none';
    const nameInput = wrap.querySelector('#addon-name-mark');
-   const pasteBtn = wrap.querySelector('#addon-paste-name-mark');
    const createBtn = wrap.querySelector('#addon-create-name-mark');
    const flowBtn = wrap.querySelector('#addon-create-flowing-signature');
    const curvedBtn = wrap.querySelector('#addon-create-curved-signature');
-   [nameInput,pasteBtn,createBtn,flowBtn,curvedBtn].forEach(el=>{if(el)el.style.display='none';});
+   [nameInput,createBtn,flowBtn,curvedBtn].forEach(el=>{if(el)el.style.display='none';});
   }
  }
  // Signature and fingerprint share the existing Signature/Fingerprint upload area.
@@ -608,7 +580,7 @@ function updateInlineAssetPreview(data) {
    const img=wrap.querySelector('img'), info=wrap.querySelector('.inline-asset-info');
    const src = fingerprint || signature;
    const label = fingerprint ? 'Fingerprint' : 'Signature';
-   if (src) { img.src=src; img.style.display='block'; info.textContent=`${label} · Extracted preview`; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb){rb.style.display='inline-flex';rb.textContent='Rotate: 0° / 90° / 180° / 270°';} const rm=wrap.querySelector('#addon-remove-sign-background'); if(rm)rm.style.display=label==='Signature'?'inline-flex':'none'; const ni=wrap.querySelector('#addon-name-mark'); if(ni)ni.style.display=label==='Signature'?'block':'none'; const pb=wrap.querySelector('#addon-paste-name-mark'); if(pb){const showPaste=label==='Signature'&&by('addon-sign-type')?.value==='signature';pb.style.display=showPaste?'inline-flex':'none';pb.style.visibility=showPaste?'visible':'hidden';pb.style.flex='0 0 auto';pb.style.position='relative';pb.style.zIndex='2';} const cb=wrap.querySelector('#addon-create-name-mark'); if(cb)cb.style.display=label==='Signature'?'inline-flex':'none'; const fb=wrap.querySelector('#addon-create-flowing-signature'); if(fb)fb.style.display=label==='Signature'?'inline-flex':'none'; const curved=wrap.querySelector('#addon-create-curved-signature'); if(curved)curved.style.display=label==='Signature'?'inline-flex':'none'; }
+   if (src) { img.src=src; img.style.display='block'; info.textContent=`${label} · Extracted preview`; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb){rb.style.display='inline-flex';rb.textContent='Rotate: 0° / 90° / 180° / 270°';} const rm=wrap.querySelector('#addon-remove-sign-background'); if(rm)rm.style.display=label==='Signature'?'inline-flex':'none'; const ni=wrap.querySelector('#addon-name-mark'); if(ni)ni.style.display=label==='Signature'?'block':'none'; const cb=wrap.querySelector('#addon-create-name-mark'); if(cb)cb.style.display=label==='Signature'?'inline-flex':'none'; const fb=wrap.querySelector('#addon-create-flowing-signature'); if(fb)fb.style.display=label==='Signature'?'inline-flex':'none'; const curved=wrap.querySelector('#addon-create-curved-signature'); if(curved)curved.style.display=label==='Signature'?'inline-flex':'none'; }
    else { img.removeAttribute('src'); img.style.display='none'; info.textContent='Signature / Fingerprint: Not Found'; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb)rb.style.display='none'; }
   }
  }
