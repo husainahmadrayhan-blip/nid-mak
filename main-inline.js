@@ -4,6 +4,31 @@
 
 
 const $=id=>document.getElementById(id),stage=$('stage'),fileMap=new Map();let doc=null,selected=null,history=[],future=[],currentHtml='index.html',cssPaths=[],backgroundName=null,drag=null;let autoFit=true;let fitRequest=0;
+
+/* HTML preview is opt-in: keep the canvas hidden until the user presses Preview. */
+(function(){
+ const holder=document.getElementById('stage-holder');
+ const work=document.getElementById('work');
+ if(!holder||!work||document.getElementById('htmlPreviewToggle'))return;
+ const button=document.createElement('button');
+ button.id='htmlPreviewToggle';
+ button.type='button';
+ button.textContent='Preview';
+ button.setAttribute('aria-expanded','false');
+ button.style.cssText='display:block;margin:12px auto;padding:10px 28px;min-height:42px;border:0;border-radius:9px;background:#2454b4;color:#fff;font-size:15px;font-weight:700;cursor:pointer';
+ holder.hidden=true;
+ holder.setAttribute('aria-hidden','true');
+ work.insertBefore(button,holder);
+ button.addEventListener('click',()=>{
+  const show=holder.hidden;
+  holder.hidden=!show;
+  holder.setAttribute('aria-hidden',String(!show));
+  button.setAttribute('aria-expanded',String(show));
+  button.textContent=show?'Hide Preview':'Preview';
+  if(show){requestAnimationFrame(()=>{if(typeof fitScreen==='function'&&autoFit)fitScreen();});}
+ });
+})();
+
 function status(s){$('status').textContent=s}function snap(){if(!doc)return;history.push(new XMLSerializer().serializeToString(doc));if(history.length>80)history.shift();future=[]}function restore(s){doc=new DOMParser().parseFromString(s,'text/html');render()}
 $('undo').onclick=()=>{if(!history.length||!doc)return;future.push(new XMLSerializer().serializeToString(doc));restore(history.pop())};$('redo').onclick=()=>{if(!future.length||!doc)return;history.push(new XMLSerializer().serializeToString(doc));restore(future.pop())};
 function findPath(name){const names=[...fileMap.keys()];return names.find(x=>x===name)||names.find(x=>x.endsWith('/'+name))||names.find(x=>x.split('/').pop()===name.split('/').pop())}
