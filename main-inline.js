@@ -73,16 +73,11 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  if(!drawer){
    drawer=document.createElement('section');
    drawer.id='allEditorTools';
-   drawer.innerHTML='<div class="tools-drawer-head"><b>PDF / JSON / Editor Tools</b><button type="button" id="closeEditorTools" aria-label="Close sidebar">×</button></div><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
+   drawer.innerHTML='<b style="display:block;font-size:16px;margin:0 0 10px">PDF / JSON / Editor Tools</b><div id="allEditorActions"></div><hr style="border:0;border-top:1px solid #44516a;margin:14px 0">';
    aside.insertBefore(drawer,aside.firstChild);
  }
  const actions=drawer.querySelector('#allEditorActions');
  if(!actions) return;
- let backdrop=document.getElementById('editorToolsBackdrop');
- if(!backdrop){backdrop=document.createElement('div');backdrop.id='editorToolsBackdrop';document.body.appendChild(backdrop);}
- const closeDrawer=()=>{document.body.classList.remove('tools-open');toggle.setAttribute('aria-expanded','false');toggle.textContent='☰';toggle.setAttribute('aria-label','Open sidebar');toggle.title='Open sidebar';};
- drawer.querySelector('#closeEditorTools')?.addEventListener('click',closeDrawer);
- backdrop.addEventListener('click',closeDrawer);
 
  // Move real controls, not copies, so their existing listeners and state survive.
  const keep=new Set(['toggleEditorTools','status']);
@@ -125,9 +120,11 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  }
 
  toggle.addEventListener('click',()=>{
-   const open=!document.body.classList.contains('tools-open');
-   if(open){document.body.classList.add('tools-open');toggle.setAttribute('aria-expanded','true');}
-   else closeDrawer();
+   const open=document.body.classList.toggle('tools-open');
+   toggle.setAttribute('aria-expanded',String(open));
+   toggle.textContent=open?'✕':'☰';
+   toggle.setAttribute('aria-label',open?'Close sidebar':'Open sidebar');
+   toggle.title=open?'Close sidebar':'Open sidebar';
  });
  const style=document.createElement('style');
  style.id='mobile-main-ui-cleanup';
@@ -140,20 +137,9 @@ $('save').onclick=async()=>{try{const blob=await makeProjectZip();const a=docume
  #allEditorActions{max-height:70vh!important;overflow:auto!important;min-width:0!important}
  #allEditorActions>*{max-width:100%!important;box-sizing:border-box!important}
  #status{display:none!important}
- .tools-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 12px;border-bottom:1px solid rgba(100,130,165,.22);margin-bottom:10px}
- .tools-drawer-head b{font-size:16px;color:#17375d}
- #closeEditorTools{width:36px;height:36px;min-height:36px;padding:0;border:0;border-radius:9px;background:#e8f1fb;color:#17375d;font-size:25px;line-height:1;cursor:pointer}
- #editorToolsBackdrop{display:none}
  @media(max-width:800px){
-   header{position:relative!important;min-height:60px!important;background:transparent!important}
-   header #toggleEditorTools{flex:0 0 46px!important;width:46px!important;height:46px!important;max-width:46px!important;background:#2454b4!important;color:#fff!important;border-radius:10px!important}
-   main>aside{display:block!important;position:fixed!important;top:0!important;left:0!important;bottom:0!important;width:min(86vw,340px)!important;max-width:340px!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:14px 10px 24px!important;overflow-y:auto!important;overflow-x:hidden!important;background:#f7fbff!important;box-shadow:8px 0 28px rgba(13,35,65,.24)!important;z-index:10002!important;transform:translateX(-110%)!important;transition:transform .25s ease!important;visibility:hidden!important}
-   body.tools-open main>aside{display:block!important;transform:translateX(0)!important;visibility:visible!important}
-   #editorToolsBackdrop{display:block;position:fixed;inset:0;background:rgba(12,27,48,.42);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;z-index:10001}
-   body.tools-open #editorToolsBackdrop{opacity:1;visibility:visible}
-   body.tools-open{overflow:hidden!important}
-   #allEditorTools{width:100%!important;max-width:100%!important;margin:0!important}
-   #allEditorActions{max-height:none!important;overflow:visible!important;min-width:0!important}
+   main>aside{display:none!important;width:100%!important;max-width:100%!important;margin:0!important}
+   body.tools-open main>aside{display:block!important}
    #stage-holder,#stage{max-width:100%!important}
    body{overflow-x:hidden!important}
  }
