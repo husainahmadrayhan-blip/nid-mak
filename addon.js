@@ -571,7 +571,9 @@ function updateInlineAssetPreview(data) {
    const flowBtn = wrap.querySelector('#addon-create-flowing-signature');
    const curvedBtn = wrap.querySelector('#addon-create-curved-signature');
    if (removeBtn) removeBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
-   if (nameInput) nameInput.style.display = canEditSignature ? 'block' : 'none';
+   if (nameInput) { nameInput.style.display = canEditSignature ? 'block' : 'none'; nameInput.style.width = '100%'; nameInput.style.maxWidth = '100%'; nameInput.style.minWidth = '0'; nameInput.style.webkitUserSelect = 'text'; nameInput.style.userSelect = 'text'; nameInput.style.touchAction = 'manipulation'; }
+   const pasteBtn = wrap.querySelector('#addon-paste-name-mark');
+   if (pasteBtn) { pasteBtn.style.display = canEditSignature ? 'inline-flex' : 'none'; pasteBtn.style.visibility = canEditSignature ? 'visible' : 'hidden'; pasteBtn.style.flex = '0 0 auto'; pasteBtn.style.position = 'relative'; pasteBtn.style.zIndex = '2'; }
    if (createBtn) createBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
    if (flowBtn) flowBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
    if (curvedBtn) curvedBtn.style.display = canEditSignature ? 'inline-flex' : 'none';
@@ -583,6 +585,12 @@ function updateInlineAssetPreview(data) {
    const removeBtn = wrap.querySelector('#addon-remove-sign-background');
    if (rotateBtn) rotateBtn.style.display = 'none';
    if (removeBtn) removeBtn.style.display = 'none';
+   const nameInput = wrap.querySelector('#addon-name-mark');
+   const pasteBtn = wrap.querySelector('#addon-paste-name-mark');
+   const createBtn = wrap.querySelector('#addon-create-name-mark');
+   const flowBtn = wrap.querySelector('#addon-create-flowing-signature');
+   const curvedBtn = wrap.querySelector('#addon-create-curved-signature');
+   [nameInput,pasteBtn,createBtn,flowBtn,curvedBtn].forEach(el=>{if(el)el.style.display='none';});
   }
  }
  // Signature and fingerprint share the existing Signature/Fingerprint upload area.
@@ -595,7 +603,7 @@ function updateInlineAssetPreview(data) {
    const img=wrap.querySelector('img'), info=wrap.querySelector('.inline-asset-info');
    const src = fingerprint || signature;
    const label = fingerprint ? 'Fingerprint' : 'Signature';
-   if (src) { img.src=src; img.style.display='block'; info.textContent=`${label} · Extracted preview`; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb){rb.style.display='inline-flex';rb.textContent='Rotate: 0° / 90° / 180° / 270°';} const rm=wrap.querySelector('#addon-remove-sign-background'); if(rm)rm.style.display=label==='Signature'?'inline-flex':'none'; const ni=wrap.querySelector('#addon-name-mark'); if(ni)ni.style.display=label==='Signature'?'block':'none'; const pb=wrap.querySelector('#addon-paste-name-mark'); if(pb)pb.style.display=label==='Signature'?'inline-flex':'none'; const cb=wrap.querySelector('#addon-create-name-mark'); if(cb)cb.style.display=label==='Signature'?'inline-flex':'none'; const fb=wrap.querySelector('#addon-create-flowing-signature'); if(fb)fb.style.display=label==='Signature'?'inline-flex':'none'; const curved=wrap.querySelector('#addon-create-curved-signature'); if(curved)curved.style.display=label==='Signature'?'inline-flex':'none'; }
+   if (src) { img.src=src; img.style.display='block'; info.textContent=`${label} · Extracted preview`; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb){rb.style.display='inline-flex';rb.textContent='Rotate: 0° / 90° / 180° / 270°';} const rm=wrap.querySelector('#addon-remove-sign-background'); if(rm)rm.style.display=label==='Signature'?'inline-flex':'none'; const ni=wrap.querySelector('#addon-name-mark'); if(ni)ni.style.display=label==='Signature'?'block':'none'; const pb=wrap.querySelector('#addon-paste-name-mark'); if(pb){const showPaste=label==='Signature'&&by('addon-sign-type')?.value==='signature';pb.style.display=showPaste?'inline-flex':'none';pb.style.visibility=showPaste?'visible':'hidden';pb.style.flex='0 0 auto';pb.style.position='relative';pb.style.zIndex='2';} const cb=wrap.querySelector('#addon-create-name-mark'); if(cb)cb.style.display=label==='Signature'?'inline-flex':'none'; const fb=wrap.querySelector('#addon-create-flowing-signature'); if(fb)fb.style.display=label==='Signature'?'inline-flex':'none'; const curved=wrap.querySelector('#addon-create-curved-signature'); if(curved)curved.style.display=label==='Signature'?'inline-flex':'none'; }
    else { img.removeAttribute('src'); img.style.display='none'; info.textContent='Signature / Fingerprint: Not Found'; const rb=wrap.querySelector('#addon-rotate-mark'); if(rb)rb.style.display='none'; }
   }
  }
